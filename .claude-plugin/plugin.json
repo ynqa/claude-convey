@@ -1,0 +1,6 @@
+{
+  "name": "convey",
+  "version": "0.1.0",
+  "description": "Fill YAML-defined prompt workflows from a form and put the result in the prompt box",
+  "author": { "name": "ynqa" }
+}

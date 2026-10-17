@@ -1,0 +1,17 @@
+# Types Claude Code writes when it loads the mod
+.claude-plugin/types/
+
+# Where Claude Code unpacks MCP bundles
+.mcpb-cache/
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Tooling
+node_modules/
+*.log
+
+# OS and editors
+.DS_Store
+.vscode/
+.idea/
