@@ -218,18 +218,45 @@ export const register: Register = on => {
       </Box>
     )
 
+    /**
+     * The key of the element that takes the focus for an input, as drawn below:
+     * its field, its Retry button, or none while it waits or loads.
+     */
+    const focusKey = (name: string, input: ConveyInput): string | null => {
+      if (input.type === 'textarea' || 'values' in input.candidates) return name
+      if (waitingFor(input, current).length > 0) return null
+      const state = loaded[name]
+      if (!state || state.status === 'loading') return null
+      return state.status === 'error' || state.values.length === 0 ? `retry:${name}` : name
+    }
+    const inputs = Object.entries(workflow.inputs)
+
+    /** The next element that can take the focus after an input, or the Fill prompt button. */
+    const nextKey = (name: string) => {
+      const after = inputs.slice(inputs.findIndex(([inputName]) => inputName === name) + 1)
+      for (const [inputName, input] of after) {
+        const key = focusKey(inputName, input)
+        if (key) return key
+      }
+      return 'fill'
+    }
+
     /** The control of one input: a text field, a select, or why its select cannot show yet. */
     const control = (name: string, input: ConveyInput) => {
       if (input.type === 'textarea') {
         const setText = (text: string) => void update($, values, entered => ({ ...entered, [name]: text }))
-        // The placeholder gives an empty field something to click.
+        // The placeholder gives an empty field something to click; Enter moves on to the next field.
         return (
           <Input
             key={name}
             placeholder={`Enter ${name}…`}
             value={current[name] ?? ''}
+            submitLabel="next"
             onInput={setText}
-            onSubmit={setText}
+            onSubmit={text => {
+              setText(text)
+              void $.ui.focus({ requestId: PANE, key: nextKey(name) })
+            }}
           />
         )
       }
@@ -278,9 +305,7 @@ export const register: Register = on => {
         ) : (
           <Text bold>{workflow.name}</Text>
         )}
-        {Object.entries(workflow.inputs).map(([name, input]) =>
-          field(name, !allowsEmpty(input), control(name, input)),
-        )}
+        {inputs.map(([name, input]) => field(name, !allowsEmpty(input), control(name, input)))}
         <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
       </Box>
     )
