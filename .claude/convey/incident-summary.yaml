@@ -1,0 +1,19 @@
+name: incident-summary
+
+inputs:
+  environment:
+    type: select
+    candidates:
+      values: [development, staging, production]
+
+  request:
+    type: textarea
+    allow_empty: false
+
+output:
+  template: |
+    # Incident request
+
+    - Environment: `{{ inputs.environment }}`
+
+    {{ inputs.request }}
