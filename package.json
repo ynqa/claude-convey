@@ -1,0 +1,17 @@
+{
+  "name": "claude-convey",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "vendor": "mkdir -p hooks/vendor/mustache && cp node_modules/mustache/mustache.mjs node_modules/mustache/LICENSE hooks/vendor/mustache/",
+    "typecheck": "tsc -p .",
+    "test": "claude plugin test .",
+    "validate": "claude plugin validate ."
+  },
+  "devDependencies": {
+    "@types/mustache": "4.2.6",
+    "mustache": "4.2.0",
+    "typescript": "5.6.3"
+  }
+}
