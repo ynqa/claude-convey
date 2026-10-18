@@ -20,13 +20,13 @@ import {
 } from './promptTemplate'
 
 const PANE = 'convey'
+const PREVIEW_PANE = 'convey-preview'
 const DEFAULT_DIR = '.claude/convey'
 
 const promptTemplates = atom({ plugin: 'convey', key: 'promptTemplates' } as const, [])
 const selected = atom({ plugin: 'convey', key: 'selected' } as const, null)
 const values = atom({ plugin: 'convey', key: 'values' } as const, {})
 const candidates = atom({ plugin: 'convey', key: 'candidates' } as const, {})
-const isPreviewOpen = atom({ plugin: 'convey', key: 'isPreviewOpen' } as const, false)
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
@@ -159,6 +159,8 @@ async function fill($: EngineInterface) {
   await $.prompt.fill({ text: render(entry.promptTemplate, current), mode: 'replace' })
   await update($, values, () => ({}))
   await $.ui.close({ id: PANE })
+  // The plugin's own $.ui.close skips its own ui.close hook, so the preview goes here too.
+  await $.ui.close({ id: PREVIEW_PANE })
 }
 
 export const register: Register = on => {
@@ -185,8 +187,24 @@ export const register: Register = on => {
 
     await update($, promptTemplates, () => entries)
     await selectPromptTemplate($, first.path)
+    // Tabs in the order convey, preview; only the form asks for the focus.
     await $.ui.open({ id: PANE, title: 'convey', focus: true, closeOnEscape: true })
+    await $.ui.open({ id: PREVIEW_PANE, title: 'preview' })
     return { text: `convey: ${entries.length} prompt template(s) from ${target}${notes}` }
+  })
+
+  // When the person closes the form (Esc, the close mark), take the preview down with it.
+  on('ui.close', async ($, e, next) => {
+    const closed = await next(e)
+    if (e.id === PANE) await $.ui.close({ id: PREVIEW_PANE })
+    return closed
+  })
+
+  on('ui.render', { component: 'Pane', requestId: PREVIEW_PANE }, async ($, e) => {
+    const { Markdown, Text } = $.ui.resolve(e)
+    const entry = await selectedEntry($)
+    if (!entry) return <Text dimColor>No prompt template selected.</Text>
+    return <Markdown text={render(entry.promptTemplate, await read($, values)).trimEnd()} />
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
@@ -200,7 +218,6 @@ export const register: Register = on => {
     const path = await read($, selected)
     const current = await read($, values)
     const loaded = await read($, candidates)
-    const isPreviewShown = await read($, isPreviewOpen)
     const promptTemplate = entries.find(entry => entry.path === path)?.promptTemplate
     if (!path || !promptTemplate) return <Text dimColor>No prompt template selected. Run /convey.</Text>
 
@@ -314,22 +331,6 @@ export const register: Register = on => {
         <Box flexDirection="column" gap={1} borderStyle="round" paddingX={1}>
           {inputs.map(([name, input]) => field(name, !allowsEmpty(input), control(name, input)))}
         </Box>
-        <Button
-          key="preview"
-          label={isPreviewShown ? '▾ preview' : '▸ preview'}
-          plain
-          dimColor
-          onPress={() => void update($, isPreviewOpen, isOpen => !isOpen)}
-        />
-        {isPreviewShown && (
-          <Box borderStyle="round" paddingX={1}>
-            {'Markdown' in elements ? (
-              <elements.Markdown text={render(promptTemplate, current).trimEnd()} />
-            ) : (
-              <Text>{render(promptTemplate, current).trimEnd()}</Text>
-            )}
-          </Box>
-        )}
         <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
       </Box>
     )
