@@ -289,7 +289,7 @@ export const register: Register = on => {
       )
     }
 
-    // Which prompt template is chosen, set apart from the inputs it asks for by a rule across the pane.
+    // Which prompt template is chosen, above the rounded card of the inputs it asks for.
     const chooser =
       entries.length > 1 ? (
         field(
@@ -309,11 +309,10 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         {chooser}
-        <Text dimColor>{'─'.repeat(Math.max(1, e.props.bodyColumns))}</Text>
-        <Box flexDirection="column" gap={1}>
+        <Box flexDirection="column" gap={1} borderStyle="round" paddingX={1}>
           {inputs.map(([name, input]) => field(name, !allowsEmpty(input), control(name, input)))}
-          <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
         </Box>
+        <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
       </Box>
     )
   })
