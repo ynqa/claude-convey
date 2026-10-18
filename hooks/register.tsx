@@ -202,10 +202,18 @@ export const register: Register = on => {
     const workflow = entries.find(entry => entry.path === path)?.workflow
     if (!path || !workflow) return <Text dimColor>No workflow selected. Run /convey.</Text>
 
-    /** A field: its title on one line, the control (or its loading state) indented below. */
-    const field = (title: string, control: ReturnType<typeof Text>) => (
+    /**
+     * A field: its title on one line, in the accent color so it reads apart
+     * from what is entered, and the control (or its loading state) indented below.
+     */
+    const field = (title: string, isRequired: boolean, control: ReturnType<typeof Text>) => (
       <Box flexDirection="column">
-        <Text bold>{title}</Text>
+        <Box>
+          <Text bold color="claude">
+            {title}
+          </Text>
+          {isRequired && <Text color="warning"> *</Text>}
+        </Box>
         <Box paddingLeft={2}>{control}</Box>
       </Box>
     )
@@ -250,6 +258,7 @@ export const register: Register = on => {
         {entries.length > 1 ? (
           field(
             'workflow',
+            false,
             <Select
               key="workflow"
               options={entries.map(entry => ({ value: entry.path, label: entry.workflow.name }))}
@@ -261,7 +270,7 @@ export const register: Register = on => {
           <Text bold>{workflow.name}</Text>
         )}
         {Object.entries(workflow.inputs).map(([name, input]) =>
-          field(allowsEmpty(input) ? name : `${name} *`, control(name, input)),
+          field(name, !allowsEmpty(input), control(name, input)),
         )}
         <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
       </Box>
