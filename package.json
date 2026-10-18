@@ -4,13 +4,16 @@
   "type": "module",
   "packageManager": "pnpm@10.11.0",
   "scripts": {
-    "vendor": "mkdir -p hooks/vendor/mustache && cp node_modules/mustache/mustache.mjs node_modules/mustache/LICENSE hooks/vendor/mustache/",
+    "vendor": "pnpm run vendor:mustache && pnpm run vendor:js-yaml",
+    "vendor:mustache": "mkdir -p hooks/vendor/mustache && cp node_modules/mustache/mustache.mjs node_modules/mustache/LICENSE hooks/vendor/mustache/",
+    "vendor:js-yaml": "mkdir -p hooks/vendor/js-yaml && cp node_modules/js-yaml/dist/js-yaml.mjs node_modules/js-yaml/LICENSE hooks/vendor/js-yaml/",
     "typecheck": "tsc -p .",
     "test": "claude plugin test .",
     "validate": "claude plugin validate ."
   },
   "devDependencies": {
     "@types/mustache": "4.2.6",
+    "js-yaml": "5.5.0",
     "mustache": "4.2.0",
     "typescript": "5.6.3"
   }
