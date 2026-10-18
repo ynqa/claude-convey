@@ -1,7 +1,12 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { ConveyCandidates as Candidates, ConveyCommand as Command, ConveyEntry as Entry } from '../types'
+import type {
+  ConveyCandidates as Candidates,
+  ConveyCommand as Command,
+  ConveyEntry as Entry,
+  ConveyInput,
+} from '../types'
 import {
   allowsEmpty,
   commandArgv,
@@ -197,64 +202,67 @@ export const register: Register = on => {
     const workflow = entries.find(entry => entry.path === path)?.workflow
     if (!path || !workflow) return <Text dimColor>No workflow selected. Run /convey.</Text>
 
+    /** A field: its title on one line, the control (or its loading state) indented below. */
+    const field = (title: string, control: ReturnType<typeof Text>) => (
+      <Box flexDirection="column">
+        <Text bold>{title}</Text>
+        <Box paddingLeft={2}>{control}</Box>
+      </Box>
+    )
+
+    /** The control of one input: a text field, a select, or why its select cannot show yet. */
+    const control = (name: string, input: ConveyInput) => {
+      if (input.type === 'textarea') {
+        const setText = (text: string) => void update($, values, entered => ({ ...entered, [name]: text }))
+        return <Input key={name} value={current[name] ?? ''} onInput={setText} onSubmit={setText} />
+      }
+
+      let options: string[]
+      if ('values' in input.candidates) {
+        options = input.candidates.values
+      } else {
+        const waiting = waitingFor(input, current)
+        const state = loaded[name]
+        if (waiting.length > 0) return <Text dimColor>waiting for {waiting.join(', ')}</Text>
+        if (!state || state.status === 'loading') return <Text dimColor>loading…</Text>
+        if (state.status === 'error' || state.values.length === 0) {
+          return (
+            <Box gap={1}>
+              <Text color="error">{state.status === 'error' ? state.error : 'no candidates'}</Text>
+              <Button key={`retry:${name}`} label="Retry" onPress={() => void retry($, name)} />
+            </Box>
+          )
+        }
+        options = state.values
+      }
+      return (
+        <Select
+          key={name}
+          options={options.map(value => ({ value }))}
+          value={current[name]}
+          onSelect={value => void pick($, name, value)}
+        />
+      )
+    }
+
     return (
       <Box flexDirection="column" gap={1}>
         {entries.length > 1 ? (
-          <Select
-            key="workflow"
-            label="workflow"
-            options={entries.map(entry => ({ value: entry.path, label: entry.workflow.name }))}
-            value={path}
-            onSelect={choice => void selectWorkflow($, choice)}
-          />
+          field(
+            'workflow',
+            <Select
+              key="workflow"
+              options={entries.map(entry => ({ value: entry.path, label: entry.workflow.name }))}
+              value={path}
+              onSelect={choice => void selectWorkflow($, choice)}
+            />,
+          )
         ) : (
           <Text bold>{workflow.name}</Text>
         )}
-        {Object.entries(workflow.inputs).map(([name, input]) => {
-          const label = allowsEmpty(input) ? name : `${name} *`
-          if (input.type === 'textarea') {
-            const setText = (text: string) => void update($, values, entered => ({ ...entered, [name]: text }))
-            return <Input key={name} label={label} value={current[name] ?? ''} onInput={setText} onSubmit={setText} />
-          }
-
-          let options: string[]
-          if ('values' in input.candidates) {
-            options = input.candidates.values
-          } else {
-            const waiting = waitingFor(input, current)
-            const state = loaded[name]
-            if (waiting.length > 0) {
-              return (
-                <Text dimColor>
-                  {label}: waiting for {waiting.join(', ')}
-                </Text>
-              )
-            }
-            if (!state || state.status === 'loading') {
-              return <Text dimColor>{label}: loading…</Text>
-            }
-            if (state.status === 'error' || state.values.length === 0) {
-              return (
-                <Box gap={1}>
-                  <Text color="error">
-                    {label}: {state.status === 'error' ? state.error : 'no candidates'}
-                  </Text>
-                  <Button key={`retry:${name}`} label="Retry" onPress={() => void retry($, name)} />
-                </Box>
-              )
-            }
-            options = state.values
-          }
-          return (
-            <Select
-              key={name}
-              label={label}
-              options={options.map(value => ({ value }))}
-              value={current[name]}
-              onSelect={value => void pick($, name, value)}
-            />
-          )
-        })}
+        {Object.entries(workflow.inputs).map(([name, input]) =>
+          field(allowsEmpty(input) ? name : `${name} *`, control(name, input)),
+        )}
         <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
       </Box>
     )
