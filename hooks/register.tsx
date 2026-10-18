@@ -289,24 +289,31 @@ export const register: Register = on => {
       )
     }
 
+    // Which prompt template is chosen, set apart from the inputs it asks for by a rule across the pane.
+    const chooser =
+      entries.length > 1 ? (
+        field(
+          'prompt template',
+          false,
+          <Select
+            key="promptTemplate"
+            options={entries.map(entry => ({ value: entry.path, label: entry.promptTemplate.name }))}
+            value={path}
+            onSelect={choice => void selectPromptTemplate($, choice)}
+          />,
+        )
+      ) : (
+        <Text bold>{promptTemplate.name}</Text>
+      )
+
     return (
-      <Box flexDirection="column" gap={1}>
-        {entries.length > 1 ? (
-          field(
-            'prompt template',
-            false,
-            <Select
-              key="promptTemplate"
-              options={entries.map(entry => ({ value: entry.path, label: entry.promptTemplate.name }))}
-              value={path}
-              onSelect={choice => void selectPromptTemplate($, choice)}
-            />,
-          )
-        ) : (
-          <Text bold>{promptTemplate.name}</Text>
-        )}
-        {inputs.map(([name, input]) => field(name, !allowsEmpty(input), control(name, input)))}
-        <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
+      <Box flexDirection="column">
+        {chooser}
+        <Text dimColor>{'─'.repeat(Math.max(1, e.props.bodyColumns))}</Text>
+        <Box flexDirection="column" gap={1}>
+          {inputs.map(([name, input]) => field(name, !allowsEmpty(input), control(name, input)))}
+          <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
+        </Box>
       </Box>
     )
   })
