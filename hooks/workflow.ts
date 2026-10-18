@@ -32,10 +32,35 @@ function checkInput(name: string, input: unknown): asserts input is Input {
 
   const candidates = input.candidates
   if (!isMap(candidates)) throw new Error(`select input ${name} requires candidates`)
-  onlyFields(candidates, ['values'], `candidates of ${name}`)
-  if (!isStringList(candidates.values) || candidates.values.length === 0) {
-    throw new Error(`candidates.values of ${name} must be a non-empty list of strings`)
+  onlyFields(candidates, ['values', 'command'], `candidates of ${name}`)
+  if ((candidates.values === undefined) === (candidates.command === undefined)) {
+    throw new Error(`candidates of ${name} need exactly one of values or command`)
   }
+
+  if (candidates.values !== undefined) {
+    if (!isStringList(candidates.values) || candidates.values.length === 0) {
+      throw new Error(`candidates.values of ${name} must be a non-empty list of strings`)
+    }
+    return
+  }
+
+  const command = candidates.command
+  if (!isMap(command)) throw new Error(`candidates.command of ${name} must be a mapping`)
+  onlyFields(command, ['program', 'args'], `candidates.command of ${name}`)
+  if (typeof command.program !== 'string' || command.program.trim() === '') {
+    throw new Error(`candidates.command.program of ${name} must not be empty`)
+  }
+  if (command.args !== undefined && !isStringList(command.args)) {
+    throw new Error(`candidates.command.args of ${name} must be a list of strings`)
+  }
+}
+
+/** Each non-empty line of a command's stdout, trimmed, is one candidate. */
+export function decodeCandidates(stdout: string): string[] {
+  return stdout
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line !== '')
 }
 
 /** Parses a workflow YAML file and checks it against convey's rules. */

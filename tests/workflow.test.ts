@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { ConveyWorkflow as Workflow } from '../types'
-import { missingRequired, parseWorkflow, render } from '../hooks/workflow'
+import { decodeCandidates, missingRequired, parseWorkflow, render } from '../hooks/workflow'
 
 const SOURCE = `name: incident-summary
 
@@ -58,6 +58,45 @@ describe('parseWorkflow', () => {
 
   test('reports YAML syntax errors', async () => {
     expect(() => parseWorkflow('name: [unclosed')).toThrow()
+  })
+
+  test('reads command candidates as written', async () => {
+    const source = `name: x
+inputs:
+  branch:
+    type: select
+    candidates:
+      command:
+        program: git
+        args: [branch, --format=%(refname:short)]
+output:
+  template: t
+`
+    expect(parseWorkflow(source).inputs.branch).toEqual({
+      type: 'select',
+      candidates: { command: { program: 'git', args: ['branch', '--format=%(refname:short)'] } },
+    })
+  })
+
+  test('rejects candidates with both values and command', async () => {
+    const source = `name: x
+inputs:
+  a:
+    type: select
+    candidates:
+      values: [one]
+      command:
+        program: ls
+output:
+  template: t
+`
+    expect(() => parseWorkflow(source)).toThrow('candidates of a need exactly one of values or command')
+  })
+})
+
+describe('decodeCandidates', () => {
+  test('keeps each non-empty line, trimmed', async () => {
+    expect(decodeCandidates('main\n  feature/x  \n\n')).toEqual(['main', 'feature/x'])
   })
 })
 

@@ -1,9 +1,16 @@
 // Names carry the Convey prefix: inside `declare module 'claude-code'` a bare
 // name resolves to Claude Code's own types first (it has a `Selection`, for one).
 
+/** A local program whose stdout lines become the candidates. Run without a shell. */
+export type ConveyCommand = { program: string; args?: string[] }
+
 /** One entry of `inputs` in a workflow YAML. `allow_empty` defaults to true. */
 export type ConveyInput =
-  | { type: 'select'; allow_empty?: boolean; candidates: { values: string[] } }
+  | {
+      type: 'select'
+      allow_empty?: boolean
+      candidates: { values: string[] } | { command: ConveyCommand }
+    }
   | { type: 'textarea'; allow_empty?: boolean }
 
 /** A workflow YAML file, in convey's format. */
@@ -17,6 +24,12 @@ export type ConveyWorkflow = {
 /** A file that parsed as a workflow. */
 export type ConveyEntry = { path: string; workflow: ConveyWorkflow }
 
+/** The candidates a command-backed select has loaded so far. */
+export type ConveyCandidates =
+  | { status: 'loading' }
+  | { status: 'ready'; values: string[] }
+  | { status: 'error'; error: string }
+
 declare module 'claude-code' {
   interface PluginState {
     convey: {
@@ -26,6 +39,8 @@ declare module 'claude-code' {
       selected: string | null
       /** Values entered in the form, by input name. */
       values: Record<string, string>
+      /** Candidates of command-backed selects, by input name. */
+      candidates: Record<string, ConveyCandidates>
     }
   }
 }

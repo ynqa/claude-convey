@@ -1,8 +1,8 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { ConveyEntry as Entry } from '../types'
-import { allowsEmpty, missingRequired, parseWorkflow, render } from './workflow'
+import type { ConveyCandidates as Candidates, ConveyCommand as Command, ConveyEntry as Entry } from '../types'
+import { allowsEmpty, decodeCandidates, missingRequired, parseWorkflow, render } from './workflow'
 
 const PANE = 'convey'
 const DEFAULT_DIR = '.claude/convey'
@@ -10,6 +10,7 @@ const DEFAULT_DIR = '.claude/convey'
 const workflows = atom({ plugin: 'convey', key: 'workflows' } as const, [])
 const selected = atom({ plugin: 'convey', key: 'selected' } as const, null)
 const values = atom({ plugin: 'convey', key: 'values' } as const, {})
+const candidates = atom({ plugin: 'convey', key: 'candidates' } as const, {})
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
@@ -41,10 +42,45 @@ async function loadWorkflows($: EngineInterface, target: string) {
   return { entries, skipped }
 }
 
-/** Shows a workflow's form, starting empty. */
+/** Runs a candidate command; a non-zero exit is an error carrying its stderr. */
+async function runCommand($: EngineInterface, command: Command): Promise<Candidates> {
+  const argv = [command.program, ...(command.args ?? [])]
+  try {
+    const { exitCode, stdout, stderr } = await $.process.run(argv, { timeoutMs: 30_000 })
+    if (exitCode !== 0) return { status: 'error', error: `${argv[0]} exited with ${exitCode}: ${stderr.trim()}` }
+    return { status: 'ready', values: decodeCandidates(stdout) }
+  } catch (error) {
+    return { status: 'error', error: message(error) }
+  }
+}
+
+/**
+ * Starts loading the candidates of one command-backed select. A result is
+ * kept only while the same workflow is shown and the input is still loading,
+ * so a slow command cannot overwrite a newer form.
+ */
+async function loadCandidates($: EngineInterface, path: string, name: string, command: Command) {
+  const loading: Candidates = { status: 'loading' }
+  await update($, candidates, loaded => ({ ...loaded, [name]: loading }))
+  const result = await runCommand($, command)
+  if ((await read($, selected)) !== path) return
+  await update($, candidates, loaded =>
+    loaded[name]?.status === 'loading' ? { ...loaded, [name]: result } : loaded,
+  )
+}
+
+/** Shows a workflow's form, starting empty, and loads its command candidates. */
 async function selectWorkflow($: EngineInterface, path: string) {
   await update($, selected, () => path)
   await update($, values, () => ({}))
+  await update($, candidates, () => ({}))
+
+  const entry = (await read($, workflows)).find(candidate => candidate.path === path)
+  for (const [name, input] of Object.entries(entry?.workflow.inputs ?? {})) {
+    if (input.type === 'select' && 'command' in input.candidates) {
+      void loadCandidates($, path, name, input.candidates.command)
+    }
+  }
 }
 
 async function fill($: EngineInterface) {
@@ -100,8 +136,9 @@ export const register: Register = on => {
     const entries = await read($, workflows)
     const path = await read($, selected)
     const current = await read($, values)
+    const loaded = await read($, candidates)
     const workflow = entries.find(entry => entry.path === path)?.workflow
-    if (!workflow) return <Text dimColor>No workflow selected. Run /convey.</Text>
+    if (!path || !workflow) return <Text dimColor>No workflow selected. Run /convey.</Text>
 
     return (
       <Box flexDirection="column" gap={1}>
@@ -110,7 +147,7 @@ export const register: Register = on => {
             key="workflow"
             label="workflow"
             options={entries.map(entry => ({ value: entry.path, label: entry.workflow.name }))}
-            value={path ?? undefined}
+            value={path}
             onSelect={choice => void selectWorkflow($, choice)}
           />
         ) : (
@@ -119,16 +156,39 @@ export const register: Register = on => {
         {Object.entries(workflow.inputs).map(([name, input]) => {
           const label = allowsEmpty(input) ? name : `${name} *`
           const setValue = (value: string) => void update($, values, entered => ({ ...entered, [name]: value }))
-          return input.type === 'select' ? (
+          if (input.type === 'textarea') {
+            return <Input key={name} label={label} value={current[name] ?? ''} onInput={setValue} onSubmit={setValue} />
+          }
+
+          let options: string[]
+          if ('values' in input.candidates) {
+            options = input.candidates.values
+          } else {
+            const { command } = input.candidates
+            const state = loaded[name]
+            if (!state || state.status === 'loading') {
+              return <Text dimColor>{label}: loading…</Text>
+            }
+            if (state.status === 'error' || state.values.length === 0) {
+              return (
+                <Box gap={1}>
+                  <Text color="error">
+                    {label}: {state.status === 'error' ? state.error : 'no candidates'}
+                  </Text>
+                  <Button key={`retry:${name}`} label="Retry" onPress={() => void loadCandidates($, path, name, command)} />
+                </Box>
+              )
+            }
+            options = state.values
+          }
+          return (
             <Select
               key={name}
               label={label}
-              options={input.candidates.values.map(value => ({ value }))}
+              options={options.map(value => ({ value }))}
               value={current[name]}
               onSelect={setValue}
             />
-          ) : (
-            <Input key={name} label={label} value={current[name] ?? ''} onInput={setValue} onSubmit={setValue} />
           )
         })}
         <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />

@@ -1,0 +1,29 @@
+name: recent-commit
+
+inputs:
+  branch:
+    type: select
+    candidates:
+      command:
+        program: git
+        args: [branch, --format=%(refname:short)]
+
+  commit:
+    type: select
+    allow_empty: false
+    candidates:
+      command:
+        program: git
+        args: [log, --format=%h %s, -n, "20"]
+
+  request:
+    type: textarea
+
+output:
+  template: |
+    # Commit review
+
+    - Branch: `{{ inputs.branch }}`
+    - Commit: {{ inputs.commit }}
+
+    {{ inputs.request }}
