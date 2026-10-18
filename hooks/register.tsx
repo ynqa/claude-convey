@@ -2,7 +2,17 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { ConveyCandidates as Candidates, ConveyCommand as Command, ConveyEntry as Entry } from '../types'
-import { allowsEmpty, decodeCandidates, missingRequired, parseWorkflow, render } from './workflow'
+import {
+  allowsEmpty,
+  commandArgv,
+  decodeCandidates,
+  dependenciesOf,
+  dependentsOf,
+  missingRequired,
+  parseWorkflow,
+  render,
+  waitingFor,
+} from './workflow'
 
 const PANE = 'convey'
 const DEFAULT_DIR = '.claude/convey'
@@ -43,8 +53,7 @@ async function loadWorkflows($: EngineInterface, target: string) {
 }
 
 /** Runs a candidate command; a non-zero exit is an error carrying its stderr. */
-async function runCommand($: EngineInterface, command: Command): Promise<Candidates> {
-  const argv = [command.program, ...(command.args ?? [])]
+async function runCommand($: EngineInterface, argv: string[]): Promise<Candidates> {
   try {
     const { exitCode, stdout, stderr } = await $.process.run(argv, { timeoutMs: 30_000 })
     if (exitCode !== 0) return { status: 'error', error: `${argv[0]} exited with ${exitCode}: ${stderr.trim()}` }
@@ -54,19 +63,46 @@ async function runCommand($: EngineInterface, command: Command): Promise<Candida
   }
 }
 
+const selectedEntry = async ($: EngineInterface) => {
+  const path = await read($, selected)
+  return (await read($, workflows)).find(entry => entry.path === path)
+}
+
 /**
- * Starts loading the candidates of one command-backed select. A result is
- * kept only while the same workflow is shown and the input is still loading,
- * so a slow command cannot overwrite a newer form.
+ * Loads one command-backed select with the current values. The result is kept
+ * only while the same workflow is shown and the values the command ran with
+ * are still the current ones, so a slow command cannot overwrite a newer form.
  */
-async function loadCandidates($: EngineInterface, path: string, name: string, command: Command) {
+async function loadCandidates($: EngineInterface, path: string, name: string, command: Command, dependsOn: string[]) {
+  const current = await read($, values)
+  const ranWith = JSON.stringify(dependsOn.map(dependency => current[dependency]))
   const loading: Candidates = { status: 'loading' }
   await update($, candidates, loaded => ({ ...loaded, [name]: loading }))
-  const result = await runCommand($, command)
+
+  let result: Candidates
+  try {
+    result = await runCommand($, commandArgv(command, current))
+  } catch (error) {
+    result = { status: 'error', error: message(error) }
+  }
+
   if ((await read($, selected)) !== path) return
-  await update($, candidates, loaded =>
-    loaded[name]?.status === 'loading' ? { ...loaded, [name]: result } : loaded,
-  )
+  const now = await read($, values)
+  if (JSON.stringify(dependsOn.map(dependency => now[dependency])) !== ranWith) return
+  await update($, candidates, loaded => (loaded[name]?.status === 'loading' ? { ...loaded, [name]: result } : loaded))
+}
+
+/** Starts every command-backed select whose dependencies have values and whose candidates are not loaded. */
+async function loadReadyCandidates($: EngineInterface) {
+  const entry = await selectedEntry($)
+  if (!entry) return
+  const current = await read($, values)
+  const loaded = await read($, candidates)
+  for (const [name, input] of Object.entries(entry.workflow.inputs)) {
+    if (input.type !== 'select' || !('command' in input.candidates) || loaded[name]) continue
+    if (waitingFor(input, current).length > 0) continue
+    void loadCandidates($, entry.path, name, input.candidates.command, dependenciesOf(input))
+  }
 }
 
 /** Shows a workflow's form, starting empty, and loads its command candidates. */
@@ -74,18 +110,39 @@ async function selectWorkflow($: EngineInterface, path: string) {
   await update($, selected, () => path)
   await update($, values, () => ({}))
   await update($, candidates, () => ({}))
+  await loadReadyCandidates($)
+}
 
-  const entry = (await read($, workflows)).find(candidate => candidate.path === path)
-  for (const [name, input] of Object.entries(entry?.workflow.inputs ?? {})) {
-    if (input.type === 'select' && 'command' in input.candidates) {
-      void loadCandidates($, path, name, input.candidates.command)
-    }
-  }
+/** Saves a select's value, clears every input that depends on it, and loads what can now load. */
+async function pick($: EngineInterface, name: string, value: string) {
+  const entry = await selectedEntry($)
+  if (!entry) return
+  const dependents = dependentsOf(entry.workflow, name)
+  await update($, values, entered => {
+    const next = { ...entered, [name]: value }
+    for (const dependent of dependents) delete next[dependent]
+    return next
+  })
+  await update($, candidates, loaded => {
+    const next = { ...loaded }
+    for (const dependent of dependents) delete next[dependent]
+    return next
+  })
+  await loadReadyCandidates($)
+}
+
+/** Forgets a select's candidates and loads them again. */
+async function retry($: EngineInterface, name: string) {
+  await update($, candidates, loaded => {
+    const next = { ...loaded }
+    delete next[name]
+    return next
+  })
+  await loadReadyCandidates($)
 }
 
 async function fill($: EngineInterface) {
-  const path = await read($, selected)
-  const entry = (await read($, workflows)).find(candidate => candidate.path === path)
+  const entry = await selectedEntry($)
   if (!entry) return
   const current = await read($, values)
   const missing = missingRequired(entry.workflow, current)
@@ -155,17 +212,24 @@ export const register: Register = on => {
         )}
         {Object.entries(workflow.inputs).map(([name, input]) => {
           const label = allowsEmpty(input) ? name : `${name} *`
-          const setValue = (value: string) => void update($, values, entered => ({ ...entered, [name]: value }))
           if (input.type === 'textarea') {
-            return <Input key={name} label={label} value={current[name] ?? ''} onInput={setValue} onSubmit={setValue} />
+            const setText = (text: string) => void update($, values, entered => ({ ...entered, [name]: text }))
+            return <Input key={name} label={label} value={current[name] ?? ''} onInput={setText} onSubmit={setText} />
           }
 
           let options: string[]
           if ('values' in input.candidates) {
             options = input.candidates.values
           } else {
-            const { command } = input.candidates
+            const waiting = waitingFor(input, current)
             const state = loaded[name]
+            if (waiting.length > 0) {
+              return (
+                <Text dimColor>
+                  {label}: waiting for {waiting.join(', ')}
+                </Text>
+              )
+            }
             if (!state || state.status === 'loading') {
               return <Text dimColor>{label}: loading…</Text>
             }
@@ -175,7 +239,7 @@ export const register: Register = on => {
                   <Text color="error">
                     {label}: {state.status === 'error' ? state.error : 'no candidates'}
                   </Text>
-                  <Button key={`retry:${name}`} label="Retry" onPress={() => void loadCandidates($, path, name, command)} />
+                  <Button key={`retry:${name}`} label="Retry" onPress={() => void retry($, name)} />
                 </Box>
               )
             }
@@ -187,7 +251,7 @@ export const register: Register = on => {
               label={label}
               options={options.map(value => ({ value }))}
               value={current[name]}
-              onSelect={setValue}
+              onSelect={value => void pick($, name, value)}
             />
           )
         })}

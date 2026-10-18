@@ -1,4 +1,4 @@
-import type { ConveyInput as Input, ConveyWorkflow as Workflow } from '../types'
+import type { ConveyCommand as Command, ConveyInput as Input, ConveyWorkflow as Workflow } from '../types'
 import { load } from './vendor/js-yaml/js-yaml.mjs'
 import Mustache from './vendor/mustache/mustache.mjs'
 
@@ -17,18 +17,30 @@ function onlyFields(map: YamlMap, fields: string[], where: string) {
   }
 }
 
-function checkInput(name: string, input: unknown): asserts input is Input {
+/** `earlierSelects` are the select inputs listed before this one. */
+function checkInput(name: string, input: unknown, earlierSelects: string[]): asserts input is Input {
   if (!isMap(input)) throw new Error(`input ${name} must be a mapping`)
-  onlyFields(input, ['type', 'allow_empty', 'candidates'], `input ${name}`)
+  onlyFields(input, ['type', 'allow_empty', 'depends_on', 'candidates'], `input ${name}`)
   if (input.allow_empty !== undefined && typeof input.allow_empty !== 'boolean') {
     throw new Error(`allow_empty of ${name} must be true or false`)
   }
 
   if (input.type === 'textarea') {
     if (input.candidates !== undefined) throw new Error(`textarea input ${name} cannot define candidates`)
+    if (input.depends_on !== undefined) throw new Error(`textarea input ${name} cannot define depends_on`)
     return
   }
   if (input.type !== 'select') throw new Error(`input ${name} must have type select or textarea`)
+
+  if (input.depends_on !== undefined) {
+    if (!isStringList(input.depends_on)) throw new Error(`depends_on of ${name} must be a list of input names`)
+    for (const dependency of input.depends_on) {
+      // Textareas are saved on every keystroke, so depending on one would rerun the command per key.
+      if (!earlierSelects.includes(dependency)) {
+        throw new Error(`input ${name} can depend only on an earlier select input, not ${dependency}`)
+      }
+    }
+  }
 
   const candidates = input.candidates
   if (!isMap(candidates)) throw new Error(`select input ${name} requires candidates`)
@@ -75,7 +87,11 @@ export function parseWorkflow(source: string): Workflow {
   if (!isMap(inputs) || Object.keys(inputs).length === 0) {
     throw new Error('inputs must be a mapping with at least one input')
   }
-  for (const [name, input] of Object.entries(inputs)) checkInput(name, input)
+  const selects: string[] = []
+  for (const [name, input] of Object.entries(inputs)) {
+    checkInput(name, input, selects)
+    if (input.type === 'select') selects.push(name)
+  }
 
   const output = workflow.output
   if (!isMap(output)) throw new Error('output must be a mapping')
@@ -89,13 +105,47 @@ export function parseWorkflow(source: string): Workflow {
 
 export const allowsEmpty = (input: Input) => input.allow_empty ?? true
 
+export const dependenciesOf = (input: Input) => (input.type === 'select' ? (input.depends_on ?? []) : [])
+
 /**
- * Renders `output.template` as Mustache with the values under `inputs`
+ * Renders a Mustache template with the values under `inputs`
  * (`{{ inputs.<name> }}`). Unset inputs render as empty strings and nothing
- * is HTML-escaped, since the output is Markdown for a prompt.
+ * is HTML-escaped: the output is Markdown for a prompt, or command arguments.
  */
+function renderText(template: string, values: Record<string, string>): string {
+  return Mustache.render(template, { inputs: values }, {}, { escape: text => text })
+}
+
+/** Renders `output.template`. */
 export function render(workflow: Workflow, values: Record<string, string>): string {
-  return Mustache.render(workflow.output.template, { inputs: values }, {}, { escape: text => text })
+  return renderText(workflow.output.template, values)
+}
+
+/**
+ * The argument vector of a candidate command, each part rendered with the
+ * values. Arguments that render empty are dropped, so a Mustache section can
+ * leave an option out (`{{#inputs.ns}}--namespace={{ inputs.ns }}{{/inputs.ns}}`).
+ */
+export function commandArgv(command: Command, values: Record<string, string>): string[] {
+  const program = renderText(command.program, values)
+  if (program.trim() === '') throw new Error(`program ${JSON.stringify(command.program)} rendered empty`)
+  const args = (command.args ?? []).map(arg => renderText(arg, values)).filter(arg => arg !== '')
+  return [program, ...args]
+}
+
+/** The dependencies of `input` that have no value yet. */
+export function waitingFor(input: Input, values: Record<string, string>): string[] {
+  return dependenciesOf(input).filter(dependency => !values[dependency])
+}
+
+/** The inputs that depend on `changed`, directly or through another input, in file order. */
+export function dependentsOf(workflow: Workflow, changed: string): string[] {
+  const affected = new Set([changed])
+  for (const [name, input] of Object.entries(workflow.inputs)) {
+    if (dependenciesOf(input).some(dependency => affected.has(dependency))) affected.add(name)
+  }
+  affected.delete(changed)
+  return [...affected]
 }
 
 /** The names of inputs with `allow_empty: false` that have no value. */

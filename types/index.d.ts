@@ -1,7 +1,10 @@
 // Names carry the Convey prefix: inside `declare module 'claude-code'` a bare
 // name resolves to Claude Code's own types first (it has a `Selection`, for one).
 
-/** A local program whose stdout lines become the candidates. Run without a shell. */
+/**
+ * A local program whose stdout lines become the candidates. Run without a
+ * shell; `program` and each of `args` are Mustache templates over `inputs`.
+ */
 export type ConveyCommand = { program: string; args?: string[] }
 
 /** One entry of `inputs` in a workflow YAML. `allow_empty` defaults to true. */
@@ -9,6 +12,8 @@ export type ConveyInput =
   | {
       type: 'select'
       allow_empty?: boolean
+      /** Earlier select inputs whose values the command's templates use. */
+      depends_on?: string[]
       candidates: { values: string[] } | { command: ConveyCommand }
     }
   | { type: 'textarea'; allow_empty?: boolean }

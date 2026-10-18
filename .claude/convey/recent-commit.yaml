@@ -11,10 +11,11 @@ inputs:
   commit:
     type: select
     allow_empty: false
+    depends_on: [branch]
     candidates:
       command:
         program: git
-        args: [log, --format=%h %s, -n, "20"]
+        args: [log, --format=%h %s, -n, "20", "{{ inputs.branch }}"]
 
   request:
     type: textarea
