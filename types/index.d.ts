@@ -46,6 +46,8 @@ declare module 'claude-code' {
       values: Record<string, string>
       /** Candidates of command-backed selects, by input name. */
       candidates: Record<string, ConveyCandidates>
+      /** Whether the preview of the rendered prompt is expanded. */
+      isPreviewOpen: boolean
     }
   }
 }

@@ -26,6 +26,7 @@ const promptTemplates = atom({ plugin: 'convey', key: 'promptTemplates' } as con
 const selected = atom({ plugin: 'convey', key: 'selected' } as const, null)
 const values = atom({ plugin: 'convey', key: 'values' } as const, {})
 const candidates = atom({ plugin: 'convey', key: 'candidates' } as const, {})
+const isPreviewOpen = atom({ plugin: 'convey', key: 'isPreviewOpen' } as const, false)
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
@@ -199,6 +200,7 @@ export const register: Register = on => {
     const path = await read($, selected)
     const current = await read($, values)
     const loaded = await read($, candidates)
+    const isPreviewShown = await read($, isPreviewOpen)
     const promptTemplate = entries.find(entry => entry.path === path)?.promptTemplate
     if (!path || !promptTemplate) return <Text dimColor>No prompt template selected. Run /convey.</Text>
 
@@ -312,6 +314,22 @@ export const register: Register = on => {
         <Box flexDirection="column" gap={1} borderStyle="round" paddingX={1}>
           {inputs.map(([name, input]) => field(name, !allowsEmpty(input), control(name, input)))}
         </Box>
+        <Button
+          key="preview"
+          label={isPreviewShown ? '▾ preview' : '▸ preview'}
+          plain
+          dimColor
+          onPress={() => void update($, isPreviewOpen, isOpen => !isOpen)}
+        />
+        {isPreviewShown && (
+          <Box borderStyle="round" paddingX={1}>
+            {'Markdown' in elements ? (
+              <elements.Markdown text={render(promptTemplate, current).trimEnd()} />
+            ) : (
+              <Text>{render(promptTemplate, current).trimEnd()}</Text>
+            )}
+          </Box>
+        )}
         <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
       </Box>
     )
