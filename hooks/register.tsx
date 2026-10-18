@@ -1,26 +1,40 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { ConveyValues } from '../types'
+import { missingRequired, render, type Workflow } from './workflow'
 
 const PANE = 'convey'
 
-// A hard-coded workflow for now; later steps load it from YAML.
-const ENVIRONMENTS = ['development', 'staging', 'production']
-const compose = (values: ConveyValues) =>
-  `# Incident request
+// A hard-coded workflow for now; a later step loads it from YAML.
+const WORKFLOW: Workflow = {
+  name: 'incident-summary',
+  inputs: [
+    { name: 'environment', type: 'select', allowEmpty: true, values: ['development', 'staging', 'production'] },
+    { name: 'request', type: 'textarea', allowEmpty: false },
+  ],
+  template: `# Incident request
 
-- Environment: \`${values.environment ?? ''}\`
+- Environment: \`{{ inputs.environment }}\`
 
-${values.request ?? ''}`
+{{ inputs.request }}`,
+}
 
 const values = atom({ plugin: 'convey', key: 'values' } as const, {})
+const missing = atom({ plugin: 'convey', key: 'missing' } as const, [])
 
-const setValue = ($: EngineInterface, name: string, value: string) =>
-  update($, values, current => ({ ...current, [name]: value }))
+async function setValue($: EngineInterface, name: string, value: string) {
+  await update($, values, current => ({ ...current, [name]: value }))
+  await update($, missing, names => names.filter(missingName => missingName !== name))
+}
 
 async function fill($: EngineInterface) {
-  await $.prompt.fill({ text: compose(await read($, values)), mode: 'replace' })
+  const current = await read($, values)
+  const empty = missingRequired(WORKFLOW, current)
+  if (empty.length > 0) {
+    await update($, missing, () => empty)
+    return
+  }
+  await $.prompt.fill({ text: render(WORKFLOW.template, current), mode: 'replace' })
   await update($, values, () => ({}))
   await $.ui.close({ id: PANE })
 }
@@ -44,24 +58,32 @@ export const register: Register = on => {
     }
     const { Box, Text, Button, Input, Select } = elements
     const current = await read($, values)
+    const empty = await read($, missing)
 
     return (
       <Box flexDirection="column" gap={1}>
-        <Text bold>incident-summary</Text>
-        <Select
-          key="environment"
-          label="environment"
-          options={ENVIRONMENTS.map(value => ({ value }))}
-          value={current.environment}
-          onSelect={value => void setValue($, 'environment', value)}
-        />
-        <Input
-          key="request"
-          label="request"
-          value={current.request ?? ''}
-          onInput={text => void setValue($, 'request', text)}
-          onSubmit={text => void setValue($, 'request', text)}
-        />
+        <Text bold>{WORKFLOW.name}</Text>
+        {WORKFLOW.inputs.map(input => {
+          const label = input.allowEmpty ? input.name : `${input.name} *`
+          return input.type === 'select' ? (
+            <Select
+              key={input.name}
+              label={label}
+              options={input.values.map(value => ({ value }))}
+              value={current[input.name]}
+              onSelect={value => void setValue($, input.name, value)}
+            />
+          ) : (
+            <Input
+              key={input.name}
+              label={label}
+              value={current[input.name] ?? ''}
+              onInput={text => void setValue($, input.name, text)}
+              onSubmit={text => void setValue($, input.name, text)}
+            />
+          )
+        })}
+        {empty.length > 0 && <Text color="error">Required: {empty.join(', ')}</Text>}
         <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
       </Box>
     )

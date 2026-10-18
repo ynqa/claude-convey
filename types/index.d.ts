@@ -3,6 +3,10 @@ export type ConveyValues = Record<string, string>
 
 declare module 'claude-code' {
   interface PluginState {
-    convey: { values: ConveyValues }
+    convey: {
+      values: ConveyValues
+      /** Required inputs left empty at the last submit. */
+      missing: string[]
+    }
   }
 }
