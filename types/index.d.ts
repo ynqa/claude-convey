@@ -7,7 +7,7 @@
  */
 export type ConveyCommand = { program: string; args?: string[] }
 
-/** One entry of `inputs` in a workflow YAML. `allow_empty` defaults to true. */
+/** One entry of `inputs` in a prompt template YAML. `allow_empty` defaults to true. */
 export type ConveyInput =
   | {
       type: 'select'
@@ -18,16 +18,16 @@ export type ConveyInput =
     }
   | { type: 'textarea'; allow_empty?: boolean }
 
-/** A workflow YAML file, in convey's format. */
-export type ConveyWorkflow = {
+/** A prompt template YAML file, in convey's format. */
+export type ConveyPromptTemplate = {
   name: string
   /** Input definitions by name, in the order the file lists them. */
   inputs: Record<string, ConveyInput>
   output: { template: string }
 }
 
-/** A file that parsed as a workflow. */
-export type ConveyEntry = { path: string; workflow: ConveyWorkflow }
+/** A file that parsed as a prompt template. */
+export type ConveyEntry = { path: string; promptTemplate: ConveyPromptTemplate }
 
 /** The candidates a command-backed select has loaded so far. */
 export type ConveyCandidates =
@@ -38,9 +38,9 @@ export type ConveyCandidates =
 declare module 'claude-code' {
   interface PluginState {
     convey: {
-      /** The workflows found by the last `/convey`. */
-      workflows: ConveyEntry[]
-      /** The path of the workflow the form shows. */
+      /** The prompt templates found by the last `/convey`. */
+      promptTemplates: ConveyEntry[]
+      /** The path of the prompt template the form shows. */
       selected: string | null
       /** Values entered in the form, by input name. */
       values: Record<string, string>

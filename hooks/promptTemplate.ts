@@ -1,4 +1,4 @@
-import type { ConveyCommand as Command, ConveyInput as Input, ConveyWorkflow as Workflow } from '../types'
+import type { ConveyCommand as Command, ConveyInput as Input, ConveyPromptTemplate as PromptTemplate } from '../types'
 import { load } from './vendor/js-yaml/js-yaml.mjs'
 import Mustache from './vendor/mustache/mustache.mjs'
 
@@ -75,15 +75,15 @@ export function decodeCandidates(stdout: string): string[] {
     .filter(line => line !== '')
 }
 
-/** Parses a workflow YAML file and checks it against convey's rules. */
-export function parseWorkflow(source: string): Workflow {
-  const workflow = load(source)
-  if (!isMap(workflow)) throw new Error('a workflow must be a mapping')
-  onlyFields(workflow, ['name', 'inputs', 'output'], 'the workflow')
+/** Parses a prompt template YAML file and checks it against convey's rules. */
+export function parsePromptTemplate(source: string): PromptTemplate {
+  const promptTemplate = load(source)
+  if (!isMap(promptTemplate)) throw new Error('a prompt template must be a mapping')
+  onlyFields(promptTemplate, ['name', 'inputs', 'output'], 'the prompt template')
 
-  if (typeof workflow.name !== 'string' || workflow.name.trim() === '') throw new Error('name must not be empty')
+  if (typeof promptTemplate.name !== 'string' || promptTemplate.name.trim() === '') throw new Error('name must not be empty')
 
-  const inputs = workflow.inputs
+  const inputs = promptTemplate.inputs
   if (!isMap(inputs) || Object.keys(inputs).length === 0) {
     throw new Error('inputs must be a mapping with at least one input')
   }
@@ -93,14 +93,14 @@ export function parseWorkflow(source: string): Workflow {
     if (input.type === 'select') selects.push(name)
   }
 
-  const output = workflow.output
+  const output = promptTemplate.output
   if (!isMap(output)) throw new Error('output must be a mapping')
   onlyFields(output, ['template'], 'output')
   if (typeof output.template !== 'string' || output.template.trim() === '') {
     throw new Error('output.template must not be empty')
   }
 
-  return workflow as Workflow
+  return promptTemplate as PromptTemplate
 }
 
 export const allowsEmpty = (input: Input) => input.allow_empty ?? true
@@ -117,8 +117,8 @@ function renderText(template: string, values: Record<string, string>): string {
 }
 
 /** Renders `output.template`. */
-export function render(workflow: Workflow, values: Record<string, string>): string {
-  return renderText(workflow.output.template, values)
+export function render(promptTemplate: PromptTemplate, values: Record<string, string>): string {
+  return renderText(promptTemplate.output.template, values)
 }
 
 /**
@@ -139,9 +139,9 @@ export function waitingFor(input: Input, values: Record<string, string>): string
 }
 
 /** The inputs that depend on `changed`, directly or through another input, in file order. */
-export function dependentsOf(workflow: Workflow, changed: string): string[] {
+export function dependentsOf(promptTemplate: PromptTemplate, changed: string): string[] {
   const affected = new Set([changed])
-  for (const [name, input] of Object.entries(workflow.inputs)) {
+  for (const [name, input] of Object.entries(promptTemplate.inputs)) {
     if (dependenciesOf(input).some(dependency => affected.has(dependency))) affected.add(name)
   }
   affected.delete(changed)
@@ -149,8 +149,8 @@ export function dependentsOf(workflow: Workflow, changed: string): string[] {
 }
 
 /** The names of inputs with `allow_empty: false` that have no value. */
-export function missingRequired(workflow: Workflow, values: Record<string, string>): string[] {
-  return Object.entries(workflow.inputs)
+export function missingRequired(promptTemplate: PromptTemplate, values: Record<string, string>): string[] {
+  return Object.entries(promptTemplate.inputs)
     .filter(([name, input]) => !allowsEmpty(input) && (values[name] ?? '').trim() === '')
     .map(([name]) => name)
 }

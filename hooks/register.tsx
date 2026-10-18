@@ -14,15 +14,15 @@ import {
   dependenciesOf,
   dependentsOf,
   missingRequired,
-  parseWorkflow,
+  parsePromptTemplate,
   render,
   waitingFor,
-} from './workflow'
+} from './promptTemplate'
 
 const PANE = 'convey'
 const DEFAULT_DIR = '.claude/convey'
 
-const workflows = atom({ plugin: 'convey', key: 'workflows' } as const, [])
+const promptTemplates = atom({ plugin: 'convey', key: 'promptTemplates' } as const, [])
 const selected = atom({ plugin: 'convey', key: 'selected' } as const, null)
 const values = atom({ plugin: 'convey', key: 'values' } as const, {})
 const candidates = atom({ plugin: 'convey', key: 'candidates' } as const, {})
@@ -31,9 +31,9 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
 
 /**
  * Reads `target` (a file, or a directory whose files are each tried) and keeps
- * what parses as a workflow; the rest is reported as skipped.
+ * what parses as a prompt template; the rest is reported as skipped.
  */
-async function loadWorkflows($: EngineInterface, target: string) {
+async function loadPromptTemplates($: EngineInterface, target: string) {
   const paths: string[] = []
   if ((await $.fs.stat(target)).kind === 'dir') {
     const dir = target.replace(/\/+$/, '')
@@ -49,7 +49,7 @@ async function loadWorkflows($: EngineInterface, target: string) {
   const skipped: string[] = []
   for (const path of paths) {
     try {
-      entries.push({ path, workflow: parseWorkflow(await $.fs.read(path)) })
+      entries.push({ path, promptTemplate: parsePromptTemplate(await $.fs.read(path)) })
     } catch (error) {
       skipped.push(`${path}: ${message(error)}`)
     }
@@ -70,12 +70,12 @@ async function runCommand($: EngineInterface, argv: string[]): Promise<Candidate
 
 const selectedEntry = async ($: EngineInterface) => {
   const path = await read($, selected)
-  return (await read($, workflows)).find(entry => entry.path === path)
+  return (await read($, promptTemplates)).find(entry => entry.path === path)
 }
 
 /**
  * Loads one command-backed select with the current values. The result is kept
- * only while the same workflow is shown and the values the command ran with
+ * only while the same prompt template is shown and the values the command ran with
  * are still the current ones, so a slow command cannot overwrite a newer form.
  */
 async function loadCandidates($: EngineInterface, path: string, name: string, command: Command, dependsOn: string[]) {
@@ -103,15 +103,15 @@ async function loadReadyCandidates($: EngineInterface) {
   if (!entry) return
   const current = await read($, values)
   const loaded = await read($, candidates)
-  for (const [name, input] of Object.entries(entry.workflow.inputs)) {
+  for (const [name, input] of Object.entries(entry.promptTemplate.inputs)) {
     if (input.type !== 'select' || !('command' in input.candidates) || loaded[name]) continue
     if (waitingFor(input, current).length > 0) continue
     void loadCandidates($, entry.path, name, input.candidates.command, dependenciesOf(input))
   }
 }
 
-/** Shows a workflow's form, starting empty, and loads its command candidates. */
-async function selectWorkflow($: EngineInterface, path: string) {
+/** Shows a prompt template's form, starting empty, and loads its command candidates. */
+async function selectPromptTemplate($: EngineInterface, path: string) {
   await update($, selected, () => path)
   await update($, values, () => ({}))
   await update($, candidates, () => ({}))
@@ -122,7 +122,7 @@ async function selectWorkflow($: EngineInterface, path: string) {
 async function pick($: EngineInterface, name: string, value: string) {
   const entry = await selectedEntry($)
   if (!entry) return
-  const dependents = dependentsOf(entry.workflow, name)
+  const dependents = dependentsOf(entry.promptTemplate, name)
   await update($, values, entered => {
     const next = { ...entered, [name]: value }
     for (const dependent of dependents) delete next[dependent]
@@ -150,12 +150,12 @@ async function fill($: EngineInterface) {
   const entry = await selectedEntry($)
   if (!entry) return
   const current = await read($, values)
-  const missing = missingRequired(entry.workflow, current)
+  const missing = missingRequired(entry.promptTemplate, current)
   if (missing.length > 0) {
     $.ui.toast(`Required: ${missing.join(', ')}`)
     return
   }
-  await $.prompt.fill({ text: render(entry.workflow, current), mode: 'replace' })
+  await $.prompt.fill({ text: render(entry.promptTemplate, current), mode: 'replace' })
   await update($, values, () => ({}))
   await $.ui.close({ id: PANE })
 }
@@ -164,28 +164,28 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'convey',
-      description: `Fill a workflow form (default: ${DEFAULT_DIR})`,
+      description: `Fill a prompt template (default: ${DEFAULT_DIR})`,
     })
     return next(e)
   })
 
   on('command.run', { command: 'convey' }, async ($, e) => {
     const target = e.args.trim() || DEFAULT_DIR
-    let loaded: Awaited<ReturnType<typeof loadWorkflows>>
+    let loaded: Awaited<ReturnType<typeof loadPromptTemplates>>
     try {
-      loaded = await loadWorkflows($, target)
+      loaded = await loadPromptTemplates($, target)
     } catch (error) {
       return { text: `convey: cannot read ${target}: ${message(error)}` }
     }
     const { entries, skipped } = loaded
     const notes = skipped.map(reason => `\n  skipped ${reason}`).join('')
     const [first] = entries
-    if (!first) return { text: `convey: no workflows in ${target}${notes}` }
+    if (!first) return { text: `convey: no prompt templates in ${target}${notes}` }
 
-    await update($, workflows, () => entries)
-    await selectWorkflow($, first.path)
+    await update($, promptTemplates, () => entries)
+    await selectPromptTemplate($, first.path)
     await $.ui.open({ id: PANE, title: 'convey', focus: true, closeOnEscape: true })
-    return { text: `convey: ${entries.length} workflow(s) from ${target}${notes}` }
+    return { text: `convey: ${entries.length} prompt template(s) from ${target}${notes}` }
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
@@ -195,12 +195,12 @@ export const register: Register = on => {
       return <Text dimColor>convey needs a surface with text fields.</Text>
     }
     const { Box, Text, Button, Input, Select } = elements
-    const entries = await read($, workflows)
+    const entries = await read($, promptTemplates)
     const path = await read($, selected)
     const current = await read($, values)
     const loaded = await read($, candidates)
-    const workflow = entries.find(entry => entry.path === path)?.workflow
-    if (!path || !workflow) return <Text dimColor>No workflow selected. Run /convey.</Text>
+    const promptTemplate = entries.find(entry => entry.path === path)?.promptTemplate
+    if (!path || !promptTemplate) return <Text dimColor>No prompt template selected. Run /convey.</Text>
 
     /**
      * A field: its title on one line, in the accent color so it reads apart
@@ -229,7 +229,7 @@ export const register: Register = on => {
       if (!state || state.status === 'loading') return null
       return state.status === 'error' || state.values.length === 0 ? `retry:${name}` : name
     }
-    const inputs = Object.entries(workflow.inputs)
+    const inputs = Object.entries(promptTemplate.inputs)
 
     /** The next element that can take the focus after an input, or the Fill prompt button. */
     const nextKey = (name: string) => {
@@ -293,17 +293,17 @@ export const register: Register = on => {
       <Box flexDirection="column" gap={1}>
         {entries.length > 1 ? (
           field(
-            'workflow',
+            'prompt template',
             false,
             <Select
-              key="workflow"
-              options={entries.map(entry => ({ value: entry.path, label: entry.workflow.name }))}
+              key="promptTemplate"
+              options={entries.map(entry => ({ value: entry.path, label: entry.promptTemplate.name }))}
               value={path}
-              onSelect={choice => void selectWorkflow($, choice)}
+              onSelect={choice => void selectPromptTemplate($, choice)}
             />,
           )
         ) : (
-          <Text bold>{workflow.name}</Text>
+          <Text bold>{promptTemplate.name}</Text>
         )}
         {inputs.map(([name, input]) => field(name, !allowsEmpty(input), control(name, input)))}
         <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
