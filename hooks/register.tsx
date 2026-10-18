@@ -222,7 +222,16 @@ export const register: Register = on => {
     const control = (name: string, input: ConveyInput) => {
       if (input.type === 'textarea') {
         const setText = (text: string) => void update($, values, entered => ({ ...entered, [name]: text }))
-        return <Input key={name} value={current[name] ?? ''} onInput={setText} onSubmit={setText} />
+        // The placeholder gives an empty field something to click.
+        return (
+          <Input
+            key={name}
+            placeholder={`Enter ${name}…`}
+            value={current[name] ?? ''}
+            onInput={setText}
+            onSubmit={setText}
+          />
+        )
       }
 
       let options: string[]
