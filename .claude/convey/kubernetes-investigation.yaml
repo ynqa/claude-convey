@@ -1,0 +1,63 @@
+name: kubernetes-investigation
+
+inputs:
+  context:
+    type: select
+    candidates:
+      command:
+        program: kubectl
+        args: [config, get-contexts, -o, name]
+
+  namespace:
+    type: select
+    depends_on: [context]
+    candidates:
+      command:
+        program: kubectl
+        args:
+          - --context
+          - "{{ inputs.context }}"
+          - get
+          - namespaces
+          - -o
+          - 'jsonpath={range .items[*]}{.metadata.name}{"\n"}{end}'
+
+  resource_kind:
+    type: select
+    candidates:
+      values: [pod, deployment, statefulset, daemonset, service, job]
+
+  resource:
+    type: select
+    depends_on: [context, namespace, resource_kind]
+    candidates:
+      command:
+        program: kubectl
+        args:
+          - --context
+          - "{{ inputs.context }}"
+          - --namespace
+          - "{{ inputs.namespace }}"
+          - get
+          - "{{ inputs.resource_kind }}"
+          - -o
+          - 'jsonpath={range .items[*]}{.metadata.name}{"\n"}{end}'
+
+  request:
+    type: textarea
+    allow_empty: false
+
+output:
+  template: |
+    # Kubernetes investigation
+
+    ## Target
+
+    - Context: `{{ inputs.context }}`
+    - Namespace: `{{ inputs.namespace }}`
+    - Resource kind: `{{ inputs.resource_kind }}`
+    - Resource name: `{{ inputs.resource }}`
+
+    ## Request
+
+    {{ inputs.request }}
