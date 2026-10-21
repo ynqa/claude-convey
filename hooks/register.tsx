@@ -1,6 +1,14 @@
 import type { Register } from 'claude-code'
 
-import { DEFAULT_DIR, PANE, PREVIEW_PANE, loadPromptTemplates, message, showPromptTemplates } from './actions'
+import {
+  DEFAULT_DIR,
+  PANE,
+  PREVIEW_PANE,
+  loadPromptTemplates,
+  message,
+  previewTitle,
+  showPromptTemplates,
+} from './actions'
 import { Form } from './form'
 import { Preview } from './preview'
 
@@ -23,12 +31,13 @@ export const register: Register = on => {
     }
     const { entries, skipped } = loaded
     const notes = skipped.map(reason => `\n  skipped ${reason}`).join('')
-    if (entries.length === 0) return { text: `convey: no prompt templates in ${target}${notes}` }
+    const [first] = entries
+    if (!first) return { text: `convey: no prompt templates in ${target}${notes}` }
 
     await showPromptTemplates($, entries)
     // Tabs in the order convey, preview; only the form asks for the focus.
     await $.ui.open({ id: PANE, title: 'convey', focus: true, closeOnEscape: true })
-    await $.ui.open({ id: PREVIEW_PANE, title: 'preview' })
+    await $.ui.open({ id: PREVIEW_PANE, title: previewTitle(first.promptTemplate.name) })
     return { text: `convey: ${entries.length} prompt template(s) from ${target}${notes}` }
   })
 

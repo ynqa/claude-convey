@@ -1,7 +1,7 @@
 import type { Elements, EngineInterface, RenderElement } from 'claude-code'
 
 import type { ConveyCandidates as Candidates, ConveyEntry as Entry, ConveyInput, ConveyPromptTemplate } from '../types'
-import { PANE, enter, fill, pick, readForm, retry, selectPromptTemplate, toggleError } from './actions'
+import { PANE, choosePromptTemplate, enter, fill, pick, readForm, retry, toggleError } from './actions'
 import { allowsEmpty, waitingFor } from './promptTemplate'
 
 /** The elements of a surface that has text fields and selects. */
@@ -235,7 +235,7 @@ function Chooser($: EngineInterface, ctx: Ctx) {
       key={keys.chooser}
       options={entries.map(entry => ({ value: entry.path, label: entry.promptTemplate.name }))}
       value={path}
-      onSelect={choice => void selectPromptTemplate($, choice)}
+      onSelect={choice => void choosePromptTemplate($, choice)}
     />,
   )
 }

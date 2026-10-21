@@ -136,6 +136,22 @@ export async function selectPromptTemplate($: EngineInterface, path: string) {
   await loadReadyCandidates($)
 }
 
+/** The preview tab's title, which names the prompt template it shows. */
+export const previewTitle = (name: string) => `preview: ${name}`
+
+/**
+ * Switches the form to another prompt template from the chooser. An open preview
+ * tab is retitled (opening an open id only retitles it); a closed one stays closed.
+ */
+export async function choosePromptTemplate($: EngineInterface, path: string) {
+  await selectPromptTemplate($, path)
+  const entry = await selectedEntry($)
+  if (!entry) return
+  if ((await $.ui.panes()).some(pane => pane.id === PREVIEW_PANE)) {
+    await $.ui.open({ id: PREVIEW_PANE, title: previewTitle(entry.promptTemplate.name) })
+  }
+}
+
 /** Saves what is typed into a text field. */
 export async function enter($: EngineInterface, name: string, text: string) {
   await update($, values, entered => ({ ...entered, [name]: text }))
