@@ -2,7 +2,7 @@ import type { Elements, EngineInterface, RenderElement } from 'claude-code'
 
 import type { ConveyCandidates as Candidates, ConveyEntry as Entry, ConveyInput, ConveyTemplate } from '../types'
 import { PANE, chooseTemplate, enter, fill, pick, readForm, retry, toggleError } from './actions'
-import { allowsEmpty, waitingFor } from './template'
+import { allowsEmpty, missingRequired, waitingFor } from './template'
 
 /** The elements of a surface that has text fields and selects. */
 export type FormElements = Extract<Elements[keyof Elements], { Input: unknown; Select: unknown }>
@@ -250,6 +250,22 @@ function Chooser($: EngineInterface, ctx: Ctx) {
   )
 }
 
+/**
+ * The Fill button, with the required inputs still empty beside it in the
+ * warning color (the color of their ` *`), so what Fill would refuse shows
+ * before it is pressed. Fill's own toast stays for a press made anyway.
+ */
+function FillRow($: EngineInterface, ctx: Ctx) {
+  const { Box, Text, Button } = ctx.el
+  const missing = missingRequired(ctx.template, ctx.current)
+  return (
+    <Box gap={2}>
+      <Button key={keys.fill} label="Fill" variant="primary" onPress={() => void fill($)} />
+      {missing.length > 0 && <Text color="warning">Required: {missing.join(', ')}</Text>}
+    </Box>
+  )
+}
+
 /** The form pane: the chooser, the card of inputs, and the Fill button. */
 export async function Form($: EngineInterface, el: FormElements, columns: number) {
   const { Box, Text, Button } = el
@@ -270,7 +286,7 @@ export async function Form($: EngineInterface, el: FormElements, columns: number
           Field(ctx, name, !allowsEmpty(input), Control($, ctx, name, input), Boolean(ctx.current[name]?.trim())),
         )}
       </Box>
-      <Button key={keys.fill} label="Fill" variant="primary" onPress={() => void fill($)} />
+      {FillRow($, ctx)}
     </Box>
   )
 }
