@@ -126,7 +126,7 @@ function focusKey({ current, loaded }: Ctx, name: string, input: ConveyInput): s
   return state.status === 'error' || state.values.length === 0 ? keys.retry(name) : keys.field(name)
 }
 
-/** The next element that can take the focus after an input, or the Fill prompt button. */
+/** The next element that can take the focus after an input, or the Fill button. */
 function nextKey(ctx: Ctx, name: string) {
   const inputs = Object.entries(ctx.template.inputs)
   const after = inputs.slice(inputs.findIndex(([inputName]) => inputName === name) + 1)
@@ -250,7 +250,7 @@ function Chooser($: EngineInterface, ctx: Ctx) {
   )
 }
 
-/** The form pane: the chooser, the card of inputs, and the Fill prompt button. */
+/** The form pane: the chooser, the card of inputs, and the Fill button. */
 export async function Form($: EngineInterface, el: FormElements, columns: number) {
   const { Box, Text, Button } = el
   const { entries, path, current, loaded } = await readForm($)
@@ -260,7 +260,7 @@ export async function Form($: EngineInterface, el: FormElements, columns: number
   const ctx: Ctx = { el, columns, entries, path, template, current, loaded }
   // A rule across the pane under its tab header (which the engine draws, so no
   // line goes between the tabs themselves), then a blank row between the rule,
-  // the template chooser, the card of inputs and the Fill prompt button.
+  // the template chooser, the card of inputs and the Fill button.
   return (
     <Box flexDirection="column" gap={1}>
       <Text dimColor>{'─'.repeat(Math.max(1, columns))}</Text>
@@ -270,7 +270,7 @@ export async function Form($: EngineInterface, el: FormElements, columns: number
           Field(ctx, name, !allowsEmpty(input), Control($, ctx, name, input), Boolean(ctx.current[name]?.trim())),
         )}
       </Box>
-      <Button key={keys.fill} label="Fill prompt" variant="primary" onPress={() => void fill($)} />
+      <Button key={keys.fill} label="Fill" variant="primary" onPress={() => void fill($)} />
     </Box>
   )
 }
