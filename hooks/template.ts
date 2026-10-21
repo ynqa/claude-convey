@@ -132,9 +132,9 @@ export type PreviewPart =
 // Private use characters wrap each input while rendering (START name SEP value END,
 // the value empty when missing), so every input's run is found again exactly, even
 // when an entered value itself holds ‹ or ›.
-const START = ''
-const SEP = ''
-const END = ''
+const START = '\uE000'
+const SEP = '\uE001'
+const END = '\uE002'
 const WRAPPED = new RegExp(`${START}([^${SEP}]*)${SEP}([^${END}]*)${END}`, 'g')
 
 /**
