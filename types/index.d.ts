@@ -33,7 +33,7 @@ export type ConveyEntry = { path: string; promptTemplate: ConveyPromptTemplate }
 export type ConveyCandidates =
   | { status: 'loading' }
   | { status: 'ready'; values: string[] }
-  | { status: 'error'; error: string }
+  | { status: 'error'; error: string; isExpanded?: boolean }
 
 declare module 'claude-code' {
   interface PluginState {

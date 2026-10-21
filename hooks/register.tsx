@@ -147,6 +147,15 @@ async function retry($: EngineInterface, name: string) {
   await loadReadyCandidates($)
 }
 
+/** Shows a failed select's whole error, or only its first line again. */
+async function toggleError($: EngineInterface, name: string) {
+  await update($, candidates, loaded => {
+    const state = loaded[name]
+    if (state?.status !== 'error') return loaded
+    return { ...loaded, [name]: { ...state, isExpanded: !state.isExpanded } }
+  })
+}
+
 async function fill($: EngineInterface) {
   const entry = await selectedEntry($)
   if (!entry) return
@@ -293,10 +302,42 @@ export const register: Register = on => {
         if (waiting.length > 0) return <Text dimColor>waiting for {waiting.join(', ')}</Text>
         if (!state || state.status === 'loading') return <Text dimColor>loading…</Text>
         if (state.status === 'error' || state.values.length === 0) {
+          const retryButton = <Button key={`retry:${name}`} label="Retry" onPress={() => void retry($, name)} />
+          if (state.status !== 'error') {
+            return (
+              <Box gap={1}>
+                <Text color="error">no candidates</Text>
+                {retryButton}
+              </Box>
+            )
+          }
+          // A command's stderr runs to many lines: one truncated line keeps Retry in
+          // view, and ▸ / ▾ shows the whole of it or folds it again.
+          const [firstLine = '', ...restLines] = state.error.trim().split('\n')
+          const hasMore = restLines.length > 0 || firstLine.length > e.props.bodyColumns - 16
           return (
-            <Box gap={1}>
-              <Text color="error">{state.status === 'error' ? state.error : 'no candidates'}</Text>
-              <Button key={`retry:${name}`} label="Retry" onPress={() => void retry($, name)} />
+            <Box flexDirection="column">
+              <Box gap={1}>
+                {hasMore && (
+                  <Button
+                    key={`error:${name}`}
+                    label={state.isExpanded ? '▾' : '▸'}
+                    plain
+                    onPress={() => void toggleError($, name)}
+                  />
+                )}
+                <Box flexShrink={1} minWidth={0}>
+                  <Text color="error" wrap={state.isExpanded ? 'wrap' : 'truncate-end'}>
+                    {firstLine}
+                  </Text>
+                </Box>
+                {retryButton}
+              </Box>
+              {state.isExpanded && restLines.length > 0 && (
+                <Box paddingLeft={hasMore ? 2 : 0}>
+                  <Text color="error">{restLines.join('\n')}</Text>
+                </Box>
+              )}
             </Box>
           )
         }
@@ -326,7 +367,7 @@ export const register: Register = on => {
           />,
         )
       ) : (
-        <Text bold>{promptTemplate.name}</Text>
+        <Text weight="bold">{promptTemplate.name}</Text>
       )
 
     return (
