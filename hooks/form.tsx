@@ -258,10 +258,12 @@ export async function Form($: EngineInterface, el: FormElements, columns: number
   if (!path || !template) return <Text dimColor>No template selected. Run /convey.</Text>
 
   const ctx: Ctx = { el, columns, entries, path, template, current, loaded }
-  // A blank row under the pane's tab header, and between the template chooser,
-  // the card of inputs and the Fill prompt button.
+  // A rule across the pane under its tab header (which the engine draws, so no
+  // line goes between the tabs themselves), then a blank row between the rule,
+  // the template chooser, the card of inputs and the Fill prompt button.
   return (
-    <Box flexDirection="column" gap={1} paddingTop={1}>
+    <Box flexDirection="column" gap={1}>
+      <Text dimColor>{'─'.repeat(Math.max(1, columns))}</Text>
       {Chooser($, ctx)}
       <Box flexDirection="column" gap={1} borderStyle="round" paddingX={1}>
         {Object.entries(template.inputs).map(([name, input]) =>
