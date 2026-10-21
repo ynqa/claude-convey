@@ -223,20 +223,30 @@ function Control($: EngineInterface, ctx: Ctx, name: string, input: ConveyInput)
   )
 }
 
-/** Which template is chosen, above the rounded card of the inputs it asks for. */
+/**
+ * Which template is chosen, above the rounded card of the inputs it asks for.
+ * A header rather than a field: a small dim label beside the template, with no
+ * accent title or mark, so it does not read as one of the inputs. The terminal
+ * has one text size and ignores `caption`; the dim color sets it apart there.
+ */
 function Chooser($: EngineInterface, ctx: Ctx) {
-  const { entries, path, template, el: { Text, Select } } = ctx
-  if (entries.length <= 1) return <Text weight="bold">{template.name}</Text>
-  return Field(
-    ctx,
-    'template',
-    false,
-    <Select
-      key={keys.chooser}
-      options={entries.map(entry => ({ value: entry.path, label: entry.template.name }))}
-      value={path}
-      onSelect={choice => void chooseTemplate($, choice)}
-    />,
+  const { entries, path, template, el: { Box, Text, Select } } = ctx
+  return (
+    <Box gap={1}>
+      <Text dimColor size="caption">
+        template
+      </Text>
+      {entries.length <= 1 ? (
+        <Text weight="bold">{template.name}</Text>
+      ) : (
+        <Select
+          key={keys.chooser}
+          options={entries.map(entry => ({ value: entry.path, label: entry.template.name }))}
+          value={path}
+          onSelect={choice => void chooseTemplate($, choice)}
+        />
+      )}
+    </Box>
   )
 }
 
@@ -248,8 +258,10 @@ export async function Form($: EngineInterface, el: FormElements, columns: number
   if (!path || !template) return <Text dimColor>No template selected. Run /convey.</Text>
 
   const ctx: Ctx = { el, columns, entries, path, template, current, loaded }
+  // A blank row under the pane's tab header, and between the template chooser,
+  // the card of inputs and the Fill prompt button.
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" gap={1} paddingTop={1}>
       {Chooser($, ctx)}
       <Box flexDirection="column" gap={1} borderStyle="round" paddingX={1}>
         {Object.entries(template.inputs).map(([name, input]) =>
