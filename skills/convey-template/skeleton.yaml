@@ -1,0 +1,39 @@
+# A convey template with every key in place and no values. Copy it to
+# .claude/convey/<name>.yaml, fill in each part, and delete what is not needed;
+# empty as it is, it does not parse (each value below is required once kept).
+name:
+
+inputs:
+  # A select with fixed choices.
+  fixed_choice:
+    type: select
+    allow_empty: true          # false makes it required; true is the default
+    candidates:
+      values: []               # at least one string
+
+  # A select whose choices are a command's output, one per line.
+  listed_choice:
+    type: select
+    candidates:
+      command:
+        program:               # the executable, run without a shell
+        args: []               # each a string; "{{ inputs.<name> }}" uses a value
+
+  # A select that waits for earlier selects and is cleared when they change.
+  dependent_choice:
+    type: select
+    depends_on: []             # names of selects listed above this one
+    candidates:
+      command:
+        program:
+        args: []
+
+  # Free text.
+  free_text:
+    type: textarea
+    allow_empty: true
+
+output:
+  # Mustache: {{ inputs.<name> }} is a value; {{#inputs.<name>}}…{{/inputs.<name>}}
+  # shows its lines only when that input has a value.
+  template: |
