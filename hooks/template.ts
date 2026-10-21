@@ -1,4 +1,4 @@
-import type { ConveyCommand as Command, ConveyInput as Input, ConveyPromptTemplate as PromptTemplate } from '../types'
+import type { ConveyCommand as Command, ConveyInput as Input, ConveyTemplate as Template } from '../types'
 import { load } from './vendor/js-yaml/js-yaml.mjs'
 import Mustache from './vendor/mustache/mustache.mjs'
 
@@ -75,15 +75,15 @@ export function decodeCandidates(stdout: string): string[] {
     .filter(line => line !== '')
 }
 
-/** Parses a prompt template YAML file and checks it against convey's rules. */
-export function parsePromptTemplate(source: string): PromptTemplate {
-  const promptTemplate = load(source)
-  if (!isMap(promptTemplate)) throw new Error('a prompt template must be a mapping')
-  onlyFields(promptTemplate, ['name', 'inputs', 'output'], 'the prompt template')
+/** Parses a template YAML file and checks it against convey's rules. */
+export function parseTemplate(source: string): Template {
+  const template = load(source)
+  if (!isMap(template)) throw new Error('a template must be a mapping')
+  onlyFields(template, ['name', 'inputs', 'output'], 'the template')
 
-  if (typeof promptTemplate.name !== 'string' || promptTemplate.name.trim() === '') throw new Error('name must not be empty')
+  if (typeof template.name !== 'string' || template.name.trim() === '') throw new Error('name must not be empty')
 
-  const inputs = promptTemplate.inputs
+  const inputs = template.inputs
   if (!isMap(inputs) || Object.keys(inputs).length === 0) {
     throw new Error('inputs must be a mapping with at least one input')
   }
@@ -93,14 +93,14 @@ export function parsePromptTemplate(source: string): PromptTemplate {
     if (input.type === 'select') selects.push(name)
   }
 
-  const output = promptTemplate.output
+  const output = template.output
   if (!isMap(output)) throw new Error('output must be a mapping')
   onlyFields(output, ['template'], 'output')
   if (typeof output.template !== 'string' || output.template.trim() === '') {
     throw new Error('output.template must not be empty')
   }
 
-  return promptTemplate as PromptTemplate
+  return template as Template
 }
 
 export const allowsEmpty = (input: Input) => input.allow_empty ?? true
@@ -112,13 +112,13 @@ export const dependenciesOf = (input: Input) => (input.type === 'select' ? (inpu
  * (`{{ inputs.<name> }}`). Unset inputs render as empty strings and nothing
  * is HTML-escaped: the output is Markdown for a prompt, or command arguments.
  */
-function renderText(template: string, values: Record<string, string>): string {
-  return Mustache.render(template, { inputs: values }, {}, { escape: text => text })
+function renderText(source: string, values: Record<string, string>): string {
+  return Mustache.render(source, { inputs: values }, {}, { escape: text => text })
 }
 
 /** Renders `output.template`. */
-export function render(promptTemplate: PromptTemplate, values: Record<string, string>): string {
-  return renderText(promptTemplate.output.template, values)
+export function render(template: Template, values: Record<string, string>): string {
+  return renderText(template.output.template, values)
 }
 
 /**
@@ -139,9 +139,9 @@ export function waitingFor(input: Input, values: Record<string, string>): string
 }
 
 /** The inputs that depend on `changed`, directly or through another input, in file order. */
-export function dependentsOf(promptTemplate: PromptTemplate, changed: string): string[] {
+export function dependentsOf(template: Template, changed: string): string[] {
   const affected = new Set([changed])
-  for (const [name, input] of Object.entries(promptTemplate.inputs)) {
+  for (const [name, input] of Object.entries(template.inputs)) {
     if (dependenciesOf(input).some(dependency => affected.has(dependency))) affected.add(name)
   }
   affected.delete(changed)
@@ -149,8 +149,8 @@ export function dependentsOf(promptTemplate: PromptTemplate, changed: string): s
 }
 
 /** The names of inputs with `allow_empty: false` that have no value. */
-export function missingRequired(promptTemplate: PromptTemplate, values: Record<string, string>): string[] {
-  return Object.entries(promptTemplate.inputs)
+export function missingRequired(template: Template, values: Record<string, string>): string[] {
+  return Object.entries(template.inputs)
     .filter(([name, input]) => !allowsEmpty(input) && (values[name] ?? '').trim() === '')
     .map(([name]) => name)
 }

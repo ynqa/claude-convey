@@ -1,8 +1,8 @@
 import type { Elements, EngineInterface, RenderElement } from 'claude-code'
 
-import type { ConveyCandidates as Candidates, ConveyEntry as Entry, ConveyInput, ConveyPromptTemplate } from '../types'
-import { PANE, choosePromptTemplate, enter, fill, pick, readForm, retry, toggleError } from './actions'
-import { allowsEmpty, waitingFor } from './promptTemplate'
+import type { ConveyCandidates as Candidates, ConveyEntry as Entry, ConveyInput, ConveyTemplate } from '../types'
+import { PANE, chooseTemplate, enter, fill, pick, readForm, retry, toggleError } from './actions'
+import { allowsEmpty, waitingFor } from './template'
 
 /** The elements of a surface that has text fields and selects. */
 export type FormElements = Extract<Elements[keyof Elements], { Input: unknown; Select: unknown }>
@@ -28,13 +28,13 @@ type Ctx = {
    */
   columns: number
   /**
-   * Every file `/convey` parsed as a prompt template, in file name order; files
+   * Every file `/convey` parsed as a template, in file name order; files
    * that did not parse are not here. Two or more draw the chooser, one its name.
    *
    * @example
    * [
-   *   { path: '.claude/convey/git-commit-review.yaml', promptTemplate: { name: 'git-commit-review', … } },
-   *   { path: '.claude/convey/kubernetes-investigation.yaml', promptTemplate: { name: 'kubernetes-investigation', … } },
+   *   { path: '.claude/convey/git-commit-review.yaml', template: { name: 'git-commit-review', … } },
+   *   { path: '.claude/convey/kubernetes-investigation.yaml', template: { name: 'kubernetes-investigation', … } },
    * ]
    */
   entries: Entry[]
@@ -44,7 +44,7 @@ type Ctx = {
    */
   path: string
   /**
-   * The chosen entry's prompt template. Its inputs keep the file's order, which
+   * The chosen entry's template. Its inputs keep the file's order, which
    * is the order of the fields; `{{ … }}` in a command's args is still unrendered
    * here, `commandArgv` fills it in just before the command runs.
    *
@@ -61,7 +61,7 @@ type Ctx = {
    *   output: { template: '# Kubernetes investigation\n\n## Target\n…' },
    * }
    */
-  promptTemplate: ConveyPromptTemplate
+  template: ConveyTemplate
   /**
    * What the person has typed or picked so far, by input name: `{ context: 'kind-kind' }`.
    * An input not given a value has no key (a cleared text field may stay as `''`),
@@ -88,7 +88,7 @@ const keys = {
   field: (name: string) => name,
   retry: (name: string) => `retry:${name}`,
   error: (name: string) => `error:${name}`,
-  chooser: 'promptTemplate',
+  chooser: 'template',
   fill: 'fill',
 }
 
@@ -128,7 +128,7 @@ function focusKey({ current, loaded }: Ctx, name: string, input: ConveyInput): s
 
 /** The next element that can take the focus after an input, or the Fill prompt button. */
 function nextKey(ctx: Ctx, name: string) {
-  const inputs = Object.entries(ctx.promptTemplate.inputs)
+  const inputs = Object.entries(ctx.template.inputs)
   const after = inputs.slice(inputs.findIndex(([inputName]) => inputName === name) + 1)
   for (const [inputName, input] of after) {
     const key = focusKey(ctx, inputName, input)
@@ -223,19 +223,19 @@ function Control($: EngineInterface, ctx: Ctx, name: string, input: ConveyInput)
   )
 }
 
-/** Which prompt template is chosen, above the rounded card of the inputs it asks for. */
+/** Which template is chosen, above the rounded card of the inputs it asks for. */
 function Chooser($: EngineInterface, ctx: Ctx) {
-  const { entries, path, promptTemplate, el: { Text, Select } } = ctx
-  if (entries.length <= 1) return <Text weight="bold">{promptTemplate.name}</Text>
+  const { entries, path, template, el: { Text, Select } } = ctx
+  if (entries.length <= 1) return <Text weight="bold">{template.name}</Text>
   return Field(
     ctx,
-    'prompt template',
+    'template',
     false,
     <Select
       key={keys.chooser}
-      options={entries.map(entry => ({ value: entry.path, label: entry.promptTemplate.name }))}
+      options={entries.map(entry => ({ value: entry.path, label: entry.template.name }))}
       value={path}
-      onSelect={choice => void choosePromptTemplate($, choice)}
+      onSelect={choice => void chooseTemplate($, choice)}
     />,
   )
 }
@@ -244,15 +244,15 @@ function Chooser($: EngineInterface, ctx: Ctx) {
 export async function Form($: EngineInterface, el: FormElements, columns: number) {
   const { Box, Text, Button } = el
   const { entries, path, current, loaded } = await readForm($)
-  const promptTemplate = entries.find(entry => entry.path === path)?.promptTemplate
-  if (!path || !promptTemplate) return <Text dimColor>No prompt template selected. Run /convey.</Text>
+  const template = entries.find(entry => entry.path === path)?.template
+  if (!path || !template) return <Text dimColor>No template selected. Run /convey.</Text>
 
-  const ctx: Ctx = { el, columns, entries, path, promptTemplate, current, loaded }
+  const ctx: Ctx = { el, columns, entries, path, template, current, loaded }
   return (
     <Box flexDirection="column">
       {Chooser($, ctx)}
       <Box flexDirection="column" gap={1} borderStyle="round" paddingX={1}>
-        {Object.entries(promptTemplate.inputs).map(([name, input]) =>
+        {Object.entries(template.inputs).map(([name, input]) =>
           Field(ctx, name, !allowsEmpty(input), Control($, ctx, name, input), Boolean(ctx.current[name]?.trim())),
         )}
       </Box>

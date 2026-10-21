@@ -4,10 +4,10 @@ import {
   DEFAULT_DIR,
   PANE,
   PREVIEW_PANE,
-  loadPromptTemplates,
+  loadTemplates,
   message,
   previewTitle,
-  showPromptTemplates,
+  showTemplates,
 } from './actions'
 import { Form } from './form'
 import { Preview } from './preview'
@@ -16,29 +16,29 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'convey',
-      description: `Fill a prompt template (default: ${DEFAULT_DIR})`,
+      description: `Fill a template (default: ${DEFAULT_DIR})`,
     })
     return next(e)
   })
 
   on('command.run', { command: 'convey' }, async ($, e) => {
     const target = e.args.trim() || DEFAULT_DIR
-    let loaded: Awaited<ReturnType<typeof loadPromptTemplates>>
+    let loaded: Awaited<ReturnType<typeof loadTemplates>>
     try {
-      loaded = await loadPromptTemplates($, target)
+      loaded = await loadTemplates($, target)
     } catch (error) {
       return { text: `convey: cannot read ${target}: ${message(error)}` }
     }
     const { entries, skipped } = loaded
     const notes = skipped.map(reason => `\n  skipped ${reason}`).join('')
     const [first] = entries
-    if (!first) return { text: `convey: no prompt templates in ${target}${notes}` }
+    if (!first) return { text: `convey: no templates in ${target}${notes}` }
 
-    await showPromptTemplates($, entries)
+    await showTemplates($, entries)
     // Tabs in the order convey, preview; only the form asks for the focus.
     await $.ui.open({ id: PANE, title: 'convey', focus: true, closeOnEscape: true })
-    await $.ui.open({ id: PREVIEW_PANE, title: previewTitle(first.promptTemplate.name) })
-    return { text: `convey: ${entries.length} prompt template(s) from ${target}${notes}` }
+    await $.ui.open({ id: PREVIEW_PANE, title: previewTitle(first.template.name) })
+    return { text: `convey: ${entries.length} template(s) from ${target}${notes}` }
   })
 
   // When the person closes the form (Esc, the close mark), take the preview down with it.

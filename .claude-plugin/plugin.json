@@ -1,7 +1,7 @@
 {
   "name": "convey",
   "version": "0.1.0",
-  "description": "Fill YAML-defined prompt templates from a form and put the result in the prompt box",
+  "description": "Fill YAML-defined templates from a form and put the result in the prompt box",
   "author": { "name": "ynqa" },
   "types": "./types/index.d.ts"
 }
