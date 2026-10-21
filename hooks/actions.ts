@@ -10,6 +10,7 @@ import {
   missingRequired,
   parseTemplate,
   render,
+  renderPreview,
   waitingFor,
 } from './template'
 
@@ -122,10 +123,13 @@ export async function readForm($: EngineInterface) {
   }
 }
 
-/** The chosen template rendered with the current values, or null when none is chosen. */
-export async function renderedPrompt($: EngineInterface) {
+/**
+ * The preview of the chosen template with the current values, as runs whose
+ * inputs still to fill are marked `‹name›` (see renderPreview), or null when none is chosen.
+ */
+export async function previewText($: EngineInterface) {
   const entry = await selectedEntry($)
-  return entry ? render(entry.template, await read($, values)) : null
+  return entry ? renderPreview(entry.template, await read($, values)) : null
 }
 
 /** Shows a template's form, starting empty, and loads its command candidates. */

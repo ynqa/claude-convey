@@ -8,6 +8,7 @@ import {
   missingRequired,
   parseTemplate,
   render,
+  renderPreview,
   waitingFor,
 } from '../hooks/template'
 
@@ -30,7 +31,7 @@ output:
     {{ inputs.request }}
 `
 
-const PROMPT_TEMPLATE: Template = {
+const TEMPLATE: Template = {
   name: 'test',
   inputs: {
     environment: { type: 'select', candidates: { values: ['staging'] } },
@@ -182,21 +183,39 @@ describe('decodeCandidates', () => {
 
 describe('render', () => {
   test('reads values under inputs without escaping them', async () => {
-    expect(render(PROMPT_TEMPLATE, { environment: 'staging', request: 'a < b & c' })).toBe('Env staging: a < b & c')
+    expect(render(TEMPLATE, { environment: 'staging', request: 'a < b & c' })).toBe('Env staging: a < b & c')
   })
 
   test('renders unset inputs as empty strings', async () => {
-    expect(render(PROMPT_TEMPLATE, {})).toBe('Env : ')
+    expect(render(TEMPLATE, {})).toBe('Env : ')
+  })
+})
+
+describe('renderPreview', () => {
+  test('makes each input a part of its own, marked when unset or blank', async () => {
+    expect(renderPreview(TEMPLATE, { environment: 'staging', request: '  ' })).toEqual([
+      { kind: 'text', text: 'Env ' },
+      { kind: 'filled', name: 'environment', text: 'staging' },
+      { kind: 'text', text: ': ' },
+      { kind: 'missing', name: 'request', text: '‹request›' },
+    ])
+  })
+
+  test('joins back into what render gives once filled, even with ‹ › in a value', async () => {
+    const values = { environment: 'staging', request: 'a ‹b›\nc' }
+    const parts = renderPreview(TEMPLATE, values)
+    expect(parts.map(part => part.kind)).toEqual(['text', 'filled', 'text', 'filled'])
+    expect(parts.map(part => part.text).join('')).toBe(render(TEMPLATE, values))
   })
 })
 
 describe('missingRequired', () => {
   test('lists required inputs that are empty or blank', async () => {
-    expect(missingRequired(PROMPT_TEMPLATE, {})).toEqual(['request'])
-    expect(missingRequired(PROMPT_TEMPLATE, { request: '  ' })).toEqual(['request'])
+    expect(missingRequired(TEMPLATE, {})).toEqual(['request'])
+    expect(missingRequired(TEMPLATE, { request: '  ' })).toEqual(['request'])
   })
 
   test('treats inputs without allow_empty as optional', async () => {
-    expect(missingRequired(PROMPT_TEMPLATE, { request: 'check it' })).toEqual([])
+    expect(missingRequired(TEMPLATE, { request: 'check it' })).toEqual([])
   })
 })

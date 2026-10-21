@@ -122,6 +122,48 @@ export function render(template: Template, values: Record<string, string>): stri
 }
 
 /**
+ * A run of the preview: the template's own text, an entered value (`filled`), or
+ * the `‹name›` mark of an input still to fill (`missing`).
+ */
+export type PreviewPart =
+  | { kind: 'text'; text: string }
+  | { kind: 'filled' | 'missing'; name: string; text: string }
+
+// Private use characters wrap each input while rendering (START name SEP value END,
+// the value empty when missing), so every input's run is found again exactly, even
+// when an entered value itself holds ‹ or ›.
+const START = ''
+const SEP = ''
+const END = ''
+const WRAPPED = new RegExp(`${START}([^${SEP}]*)${SEP}([^${END}]*)${END}`, 'g')
+
+/**
+ * Renders `output.template` for the preview, as runs: each input is a part of its
+ * own, its value when filled and `‹name›` when unset or blank, so the preview can
+ * color both. Trailing whitespace is dropped. Only the preview uses it; Fill puts
+ * `render`'s text, without marks, in the prompt box.
+ */
+export function renderPreview(template: Template, values: Record<string, string>): PreviewPart[] {
+  const shown = { ...values }
+  for (const name of Object.keys(template.inputs)) {
+    const value = values[name] ?? ''
+    shown[name] = `${START}${name}${SEP}${value.trim() === '' ? '' : value}${END}`
+  }
+  const rendered = renderText(template.output.template, shown).trimEnd()
+
+  const parts: PreviewPart[] = []
+  let at = 0
+  for (const match of rendered.matchAll(WRAPPED)) {
+    const [whole, name = '', value = ''] = match
+    if (match.index > at) parts.push({ kind: 'text', text: rendered.slice(at, match.index) })
+    parts.push(value === '' ? { kind: 'missing', name, text: `‹${name}›` } : { kind: 'filled', name, text: value })
+    at = match.index + whole.length
+  }
+  if (at < rendered.length) parts.push({ kind: 'text', text: rendered.slice(at) })
+  return parts
+}
+
+/**
  * The argument vector of a candidate command, each part rendered with the
  * values. Arguments that render empty are dropped, so a Mustache section can
  * leave an option out (`{{#inputs.ns}}--namespace={{ inputs.ns }}{{/inputs.ns}}`).
