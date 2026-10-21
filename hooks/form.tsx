@@ -10,14 +10,76 @@ export type FormElements = Extract<Elements[keyof Elements], { Input: unknown; S
 /**
  * What every part of the form draws from. $ is not in it: a mod passes $ only as
  * itself, so the parts that act take it as their first argument.
+ *
+ * `el` and `columns` come from the render event; the rest is read from the
+ * state by `readForm`. The examples are kubernetes-investigation right after
+ * `kind-kind` is picked as the context, while its namespaces still load.
  */
 type Ctx = {
+  /**
+   * The elements this surface draws with, as `$.ui.resolve(e)` gave them
+   * (terminal, desktop or vscode; mobile has no text fields and never gets here).
+   * Each is a function that makes an element: `const { Box, Text } = ctx.el`.
+   */
   el: FormElements
+  /**
+   * How many columns the pane's body has, `e.props.bodyColumns`; `76`, say.
+   * Decides whether a failed select's first error line fits or gets ▸ / ▾.
+   */
   columns: number
+  /**
+   * Every file `/convey` parsed as a prompt template, in file name order; files
+   * that did not parse are not here. Two or more draw the chooser, one its name.
+   *
+   * @example
+   * [
+   *   { path: '.claude/convey/git-commit-review.yaml', promptTemplate: { name: 'git-commit-review', … } },
+   *   { path: '.claude/convey/kubernetes-investigation.yaml', promptTemplate: { name: 'kubernetes-investigation', … } },
+   * ]
+   */
   entries: Entry[]
+  /**
+   * The path of the chosen entry, the chooser's value:
+   * `'.claude/convey/kubernetes-investigation.yaml'`.
+   */
   path: string
+  /**
+   * The chosen entry's prompt template. Its inputs keep the file's order, which
+   * is the order of the fields; `{{ … }}` in a command's args is still unrendered
+   * here, `commandArgv` fills it in just before the command runs.
+   *
+   * @example
+   * {
+   *   name: 'kubernetes-investigation',
+   *   inputs: {
+   *     context: { type: 'select', candidates: { command: { program: 'kubectl', args: ['config', 'get-contexts', '-o', 'name'] } } },
+   *     namespace: { type: 'select', depends_on: ['context'], candidates: { command: { program: 'kubectl', args: ['--context', '{{ inputs.context }}', …] } } },
+   *     resource_kind: { type: 'select', candidates: { values: ['pod', 'deployment', …] } },
+   *     resource: { type: 'select', depends_on: ['context', 'namespace', 'resource_kind'], candidates: { command: … } },
+   *     request: { type: 'textarea', allow_empty: false },
+   *   },
+   *   output: { template: '# Kubernetes investigation\n\n## Target\n…' },
+   * }
+   */
   promptTemplate: ConveyPromptTemplate
+  /**
+   * What the person has typed or picked so far, by input name: `{ context: 'kind-kind' }`.
+   * An input not given a value has no key (a cleared text field may stay as `''`),
+   * and picking a select again drops the keys of the inputs that depend on it.
+   * The ✓ / ○ marks, the controls' values and "waiting for …" all read it.
+   */
   current: Record<string, string>
+  /**
+   * The candidates of each command-backed select, by input name. A select with
+   * fixed values (resource_kind) is never here; one still waiting for its
+   * dependencies (resource) or not yet started has no key.
+   *
+   * @example
+   * {
+   *   context: { status: 'ready', values: ['kind-kind', 'kind-kube-inference-sandbox'] },
+   *   namespace: { status: 'loading' },
+   * }
+   */
   loaded: Record<string, Candidates>
 }
 
