@@ -1,0 +1,12 @@
+{
+  "name": "claude-convey",
+  "owner": { "name": "ynqa" },
+  "description": "convey for Claude Code: fill a template's inputs in a form, then put the prompt in the prompt box",
+  "plugins": [
+    {
+      "name": "convey",
+      "source": "./",
+      "description": "Fill YAML-defined templates from a form and put the result in the prompt box"
+    }
+  ]
+}
