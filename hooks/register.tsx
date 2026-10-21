@@ -224,11 +224,15 @@ export const register: Register = on => {
     /**
      * A field: its title on one line, in the accent color so it reads apart
      * from what is entered, and the control (or its loading state) indented below.
+     * An input's title carries a mark, ✓ once it has a value and ○ until then,
+     * which also lines the title up with the control under it.
      */
-    const field = (title: string, isRequired: boolean, control: ReturnType<typeof Text>) => (
+    const field = (title: string, isRequired: boolean, control: ReturnType<typeof Text>, isFilled?: boolean) => (
       <Box flexDirection="column">
         <Box>
-          <Text bold color="claude">
+          {isFilled !== undefined &&
+            (isFilled ? <Text color="success">✓ </Text> : <Text color="inactive">○ </Text>)}
+          <Text weight="bold" color="claude">
             {title}
           </Text>
           {isRequired && <Text color="warning"> *</Text>}
@@ -329,7 +333,9 @@ export const register: Register = on => {
       <Box flexDirection="column">
         {chooser}
         <Box flexDirection="column" gap={1} borderStyle="round" paddingX={1}>
-          {inputs.map(([name, input]) => field(name, !allowsEmpty(input), control(name, input)))}
+          {inputs.map(([name, input]) =>
+            field(name, !allowsEmpty(input), control(name, input), Boolean(current[name]?.trim())),
+          )}
         </Box>
         <Button key="fill" label="Fill prompt" variant="primary" onPress={() => void fill($)} />
       </Box>
