@@ -188,19 +188,20 @@ output:
 
 ## The template skill
 
-The plugin includes a `convey-template` skill for writing templates. Ask
-Claude Code for one, and it asks what you want to pick each time, tries the
-commands that produce the candidates, and then writes the template to
-`.claude/convey/`.
+The plugin includes a `template` skill for writing templates. Run
+`/convey:template` followed by what the template should do, and it asks what
+you want to pick each time, tries the commands that produce the candidates,
+and then writes the template to `.claude/convey/`. Asking for a template
+without `/convey:template` uses the skill too.
 
 Example requests:
 
 ```
-Make a convey template that picks a git branch and commit and asks for a review of that commit
+/convey:template pick a git branch and commit, and ask for a review of that commit
 ```
 
 ```
-Make a template that picks a kubectl context, namespace and Pod in turn and asks to investigate
+/convey:template pick a kubectl context, namespace and Pod in turn, and ask to investigate
 why the Pod is failing. I want to write what to look into freely each time
 ```
 

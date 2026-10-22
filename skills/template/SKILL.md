@@ -1,5 +1,5 @@
 ---
-name: convey-template
+name: template
 description: Write or fix a template for the convey plugin's /convey form, a YAML file under .claude/convey that turns picked and typed values into a prompt. Use when the person asks to create, change or debug a convey template, a /convey form, or a file in .claude/convey, or when /convey reports a template as skipped.
 ---
 
