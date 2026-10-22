@@ -8,16 +8,14 @@ A Claude Code plugin inspired by [convey](https://github.com/ynqa/convey).
 
 ## Motivation
 
-Some values in a task are ones you don't want the agent to guess: the target
-of the work, the environment, the version, and so on. If the prompt leaves
-them out, the agent fills them in from whatever it can see, and a wrong guess
-means the work is done against the wrong thing.
+Prompts to an agent often carry values like a branch name, a commit hash or a
+cluster name. They have to be exact, yet they're really just one item out of a
+list you could pick from. Looking them up and typing them in every time is
+tedious, and typos creep in.
 
-Typing the exact names by hand every time is tedious, though, and typos creep in.
+With this plugin, you pick those values in a form to fill in the prompt.
 
-With this plugin, you pick those values in a form before they become a prompt.
-
-- Choices can come from a command's output, so you pick from values that
+- Choices can come from a command's output, so you just pick from values that
   actually exist and can't mistype them
 - Prompts you use often live in templates, so you ask the same way every time
 - The prompt goes into the input box without being sent, so you can check it first
