@@ -20,8 +20,14 @@ cluster, the branch, the commit), so a good template asks for exactly those.
    inputs it depends on. It must print one candidate per line and exit 0; fix
    it until it does (`-o name`, `--format=…`, a jsonpath with `{"\n"}`). It runs
    without a shell, so no pipes, `&&`, globs or `$VAR` (see reference.md).
+   If a command cannot run here (its cluster or server is unreachable, a login
+   is missing), do not swap it for fixed values: check what you can without it
+   (the same output option on a local source, such as `kubectl config view`
+   for a jsonpath), write it as planned, and tell the person which commands are
+   untested so they can see them load, or fail with Retry, in the form.
 3. **Start from `skeleton.yaml`** in this skill's folder: copy it to
-   `.claude/convey/<name>.yaml` and fill it in, deleting the inputs not needed.
+   `.claude/convey/<name>.yaml` and fill it in, deleting the inputs not needed
+   and the skeleton's own comments (its header and the notes on each key).
    Keep the inputs in the order the person should fill them; an input that
    `depends_on` another comes after it.
 4. **Check it with `/convey .claude/convey/<name>.yaml`** (ask the person to run
