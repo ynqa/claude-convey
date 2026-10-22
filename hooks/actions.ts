@@ -22,6 +22,7 @@ const templates = atom({ plugin: 'convey', key: 'templates' } as const, [])
 const selected = atom({ plugin: 'convey', key: 'selected' } as const, null)
 const values = atom({ plugin: 'convey', key: 'values' } as const, {})
 const candidates = atom({ plugin: 'convey', key: 'candidates' } as const, {})
+const submits = atom({ plugin: 'convey', key: 'submits' } as const, {})
 
 export const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
@@ -120,6 +121,7 @@ export async function readForm($: EngineInterface) {
     path: await read($, selected),
     current: await read($, values),
     loaded: await read($, candidates),
+    submitted: await read($, submits),
   }
 }
 
@@ -137,6 +139,7 @@ export async function selectTemplate($: EngineInterface, path: string) {
   await update($, selected, () => path)
   await update($, values, () => ({}))
   await update($, candidates, () => ({}))
+  await update($, submits, () => ({}))
   await loadReadyCandidates($)
 }
 
@@ -159,6 +162,16 @@ export async function chooseTemplate($: EngineInterface, path: string) {
 /** Saves what is typed into a text field. */
 export async function enter($: EngineInterface, name: string, text: string) {
   await update($, values, entered => ({ ...entered, [name]: text }))
+}
+
+/**
+ * Saves a text field's value on Enter and counts the press. The surface empties
+ * a field on Enter, and an unchanged value would not draw it again, so the count
+ * goes into the field's key (see form.tsx), drawing a new field with the value.
+ */
+export async function submit($: EngineInterface, name: string, text: string) {
+  await enter($, name, text)
+  await update($, submits, counted => ({ ...counted, [name]: (counted[name] ?? 0) + 1 }))
 }
 
 /** Saves a select's value, clears every input that depends on it, and loads what can now load. */

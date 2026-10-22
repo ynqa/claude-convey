@@ -1,7 +1,7 @@
 import type { Elements, EngineInterface, RenderElement } from 'claude-code'
 
 import type { ConveyCandidates as Candidates, ConveyEntry as Entry, ConveyInput, ConveyTemplate } from '../types'
-import { PANE, chooseTemplate, enter, fill, pick, readForm, retry, toggleError } from './actions'
+import { PANE, chooseTemplate, enter, fill, pick, readForm, retry, submit, toggleError } from './actions'
 import { allowsEmpty, missingRequired, waitingFor } from './template'
 
 /** The elements of a surface that has text fields and selects. */
@@ -81,11 +81,17 @@ type Ctx = {
    * }
    */
   loaded: Record<string, Candidates>
+  /**
+   * How many times Enter was pressed in each text field: `{ request: 1 }`. It
+   * goes into the field's key, so a field emptied by Enter is drawn anew.
+   */
+  submitted: Record<string, number>
 }
 
 /** The keys the form's elements are drawn under, which the focus moves between. */
 const keys = {
-  field: (name: string) => name,
+  /** An input's field; a text field's also counts its Enter presses, after a `~`. */
+  field: (name: string, submitted = 0) => (submitted === 0 ? name : `${name}~${submitted}`),
   retry: (name: string) => `retry:${name}`,
   error: (name: string) => `error:${name}`,
   chooser: 'template',
@@ -118,8 +124,9 @@ function Field({ el: { Box, Text } }: Ctx, title: string, isRequired: boolean, c
  * The key of the element that takes the focus for an input, as drawn below:
  * its field, its Retry button, or none while it waits or loads.
  */
-function focusKey({ current, loaded }: Ctx, name: string, input: ConveyInput): string | null {
-  if (input.type === 'textarea' || 'values' in input.candidates) return keys.field(name)
+function focusKey({ current, loaded, submitted }: Ctx, name: string, input: ConveyInput): string | null {
+  if (input.type === 'textarea') return keys.field(name, submitted[name])
+  if ('values' in input.candidates) return keys.field(name)
   if (waitingFor(input, current).length > 0) return null
   const state = loaded[name]
   if (!state || state.status === 'loading') return null
@@ -189,13 +196,13 @@ function Control($: EngineInterface, ctx: Ctx, name: string, input: ConveyInput)
     // The placeholder gives an empty field something to click; Enter moves on to the next field.
     return (
       <Input
-        key={keys.field(name)}
+        key={keys.field(name, ctx.submitted[name])}
         placeholder={`Enter ${name}…`}
         value={current[name] ?? ''}
         submitLabel="next"
         onInput={text => void enter($, name, text)}
         onSubmit={text => {
-          void enter($, name, text)
+          void submit($, name, text)
           // A refused move leaves the focus where it is, which is fine here.
           $.ui.focus({ requestId: PANE, key: nextKey(ctx, name) }).catch(() => {})
         }}
@@ -270,11 +277,11 @@ function FillRow($: EngineInterface, ctx: Ctx) {
 /** The form pane: the chooser, the card of inputs, and the Fill button. */
 export async function Form($: EngineInterface, el: FormElements, columns: number) {
   const { Box, Text, Button } = el
-  const { entries, path, current, loaded } = await readForm($)
+  const { entries, path, current, loaded, submitted } = await readForm($)
   const template = entries.find(entry => entry.path === path)?.template
   if (!path || !template) return <Text dimColor>No template selected. Run /convey.</Text>
 
-  const ctx: Ctx = { el, columns, entries, path, template, current, loaded }
+  const ctx: Ctx = { el, columns, entries, path, template, current, loaded, submitted }
   // A rule across the pane under its tab header (which the engine draws, so no
   // line goes between the tabs themselves), then a blank row between the rule,
   // the template chooser, the card of inputs and the Fill button.
