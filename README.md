@@ -31,14 +31,6 @@ With this plugin, you pick those values in a form before they become a prompt.
 4. Press **Fill** to put the filled-in prompt into Claude Code's input box
    (it isn't sent, so you can check it before sending)
 
-## Requirements
-
-- Claude Code with plugin mod support
-- The commands your templates use for candidates (`git` and `kubectl` in the examples)
-- An environment that can show the form
-  - Terminal, desktop app, VS Code: supported
-  - Mobile: not supported (a one-line notice is shown instead of the form)
-
 ## Install
 
 ```sh
