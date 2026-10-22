@@ -33,5 +33,17 @@ Tab Sleep 500ms
 Type@50ms "Check this commit for bugs" Sleep 1s
 Enter Sleep 1500ms
 
+# Check the prompt in the preview tab before filling it in.
+Ctrl+X Sleep 200ms
+Tab Sleep 3500ms
+
+# Back to the form: ctrl+x tab twice more, which leaves the focus on the
+# template chooser, then Tab through branch, commit and request to Fill.
+Ctrl+X Sleep 200ms
+Tab Sleep 300ms
+Ctrl+X Sleep 200ms
+Tab Sleep 1500ms
+Tab@400ms 5 Sleep 1s
+
 # Fill puts the prompt in Claude Code's prompt box (it is not sent).
 Enter Sleep 4s
