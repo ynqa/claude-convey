@@ -210,6 +210,7 @@ export async function fill($: EngineInterface) {
   await $.prompt.fill({ text: render(entry.template, current), mode: 'replace' })
   await update($, values, () => ({}))
   await $.ui.close({ id: PANE })
-  // The plugin's own $.ui.close skips its own ui.close hook, so the preview goes here too.
-  await $.ui.close({ id: PREVIEW_PANE })
+  // The plugin's own $.ui.close skips its own ui.close hook, so the preview goes here
+  // too; caught, as in that hook, since the prompt is already filled by now.
+  await $.ui.close({ id: PREVIEW_PANE }).catch(() => {})
 }

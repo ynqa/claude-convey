@@ -42,11 +42,14 @@ export const register: Register = on => {
   })
 
   // When the person closes the form (Esc, the close mark), take the preview down with it.
+  // Whatever goes wrong here, the close itself goes ahead: the preview's close is
+  // caught, and should the hook still fail, its catch passes the close on (next is
+  // replay-safe there, so a close already made is not made again).
   on('ui.close', async ($, e, next) => {
     const closed = await next(e)
-    if (e.id === PANE) await $.ui.close({ id: PREVIEW_PANE })
+    if (e.id === PANE) await $.ui.close({ id: PREVIEW_PANE }).catch(() => {})
     return closed
-  })
+  }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PREVIEW_PANE }, async ($, e) => Preview($, $.ui.resolve(e)))
 

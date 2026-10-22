@@ -196,7 +196,8 @@ function Control($: EngineInterface, ctx: Ctx, name: string, input: ConveyInput)
         onInput={text => void enter($, name, text)}
         onSubmit={text => {
           void enter($, name, text)
-          void $.ui.focus({ requestId: PANE, key: nextKey(ctx, name) })
+          // A refused move leaves the focus where it is, which is fine here.
+          $.ui.focus({ requestId: PANE, key: nextKey(ctx, name) }).catch(() => {})
         }}
       />
     )
