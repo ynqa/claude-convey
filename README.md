@@ -6,7 +6,7 @@
 
 A Claude Code plugin inspired by [convey](https://github.com/ynqa/convey).
 
-## Why
+## Motivation
 
 Some values in a task are ones you don't want the agent to guess: the target
 of the work, the environment, the version, and so on. If the prompt leaves
