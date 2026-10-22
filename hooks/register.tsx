@@ -27,18 +27,19 @@ export const register: Register = on => {
     try {
       loaded = await loadTemplates($, target)
     } catch (error) {
-      return { text: `convey: cannot read ${target}: ${message(error)}` }
+      return { text: `cannot read ${target}: ${message(error)}` }
     }
     const { entries, skipped } = loaded
     const notes = skipped.map(reason => `\n  skipped ${reason}`).join('')
     const [first] = entries
-    if (!first) return { text: `convey: no templates in ${target}${notes}` }
+    if (!first) return { text: `no templates in ${target}${notes}` }
 
     await showTemplates($, entries)
     // Tabs in the order convey, preview; only the form asks for the focus.
     await $.ui.open({ id: PANE, title: 'convey', focus: true, closeOnEscape: true })
     await $.ui.open({ id: PREVIEW_PANE, title: previewTitle(first.template.name) })
-    return { text: `convey: ${entries.length} template(s) from ${target}${notes}` }
+    // The engine heads a command's reply with the plugin's name, so it is not repeated here.
+    return { text: `${entries.length} template(s) from ${target}${notes}` }
   })
 
   // When the person closes the form (Esc, the close mark), take the preview down with it.
