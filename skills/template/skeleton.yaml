@@ -8,7 +8,7 @@ inputs:
   fixed_choice:
     type: select
     allow_empty: true          # false makes it required; true is the default
-    description:               # a note shown under the title, not in the prompt
+    description:               # a note shown after the title, not in the prompt
     candidates:
       values: []               # at least one string
       default:                 # optional; one of the values, picked when the form opens

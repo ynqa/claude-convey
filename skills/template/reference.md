@@ -17,7 +17,7 @@ level, is rejected as `unknown field in <where>: <key>`.
 | --- | --- | --- |
 | `type` | both | `select` or `textarea` |
 | `allow_empty` | both | `true` or `false`, default `true`; `false` makes the input required (a yellow ` *`, and Fill refuses while it is empty or blank) |
-| `description` | both | a non-empty string, optional; shown dim under the input's title to say what to enter, and never put in the prompt |
+| `description` | both | a non-empty string, optional; shown after the input's title (`name: description`) to say what to enter, and never put in the prompt |
 | `placeholder` | textarea only | a non-empty string, the dim hint shown while the field is empty (default `Enter <name>…`); never a value and never in the prompt; a select with it is an error |
 | `candidates` | select only | a mapping with exactly one of `values` or `command`; a textarea with it is an error |
 | `candidates.values` | select | a non-empty list of strings |
