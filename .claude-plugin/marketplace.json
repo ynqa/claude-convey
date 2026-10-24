@@ -5,7 +5,7 @@
   "plugins": [
     {
       "name": "convey",
-      "source": { "source": "github", "repo": "ynqa/claude-convey", "ref": "v0.1.0" },
+      "source": { "source": "github", "repo": "ynqa/claude-convey", "ref": "v0.2.0" },
       "description": "Fill YAML-defined templates from a form and put the result in the prompt box"
     }
   ]
