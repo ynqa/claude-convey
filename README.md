@@ -45,6 +45,19 @@ Inside Claude Code, you can also run:
 
 Restart the session after installing to load the plugin.
 
+### Update
+
+To move to a new release (from 0.1.0 to 0.2.0, say), refresh the marketplace
+and then update the plugin:
+
+```sh
+claude plugin marketplace update claude-convey
+claude plugin update convey@claude-convey
+```
+
+Restart the session to load the new version. `claude plugin list` shows the
+installed version. Templates written for 0.1.0 keep working in 0.2.0 as they are.
+
 ## Usage
 
 ### Add templates and open the form
