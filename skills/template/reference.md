@@ -21,6 +21,7 @@ level, is rejected as `unknown field in <where>: <key>`.
 | `placeholder` | textarea only | a non-empty string, the dim hint shown while the field is empty (default `Enter <name>…`); never a value and never in the prompt; a select with it is an error |
 | `candidates` | select only | a mapping with exactly one of `values` or `command`; a textarea with it is an error |
 | `candidates.values` | select | a non-empty list of strings |
+| `candidates.default` | select with `values` | one of `values`, optional; picked each time the form opens, and Fill inserts it if left unchanged. Beside `command` it is an error, and there is no `default` on an input itself or on a textarea |
 | `candidates.command.program` | select | a non-empty string |
 | `candidates.command.args` | select | a list of strings, optional |
 | `depends_on` | select only | a list of names of select inputs listed before this one; a textarea with it is an error |

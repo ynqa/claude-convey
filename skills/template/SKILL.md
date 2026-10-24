@@ -41,10 +41,13 @@ These templates are convey's YAML format, read by this plugin's own parser.
 Where it is stricter or different, follow it:
 
 - Only `name`, `inputs` and `output.template` exist; **any other field is an
-  error** (no `default`, `multiselect`). An input's
-  `description` is shown in the form only, never in the prompt.
+  error** (no `multiselect`). An input's `description` is shown in the form
+  only, never in the prompt.
 - `placeholder` is a textarea's dim hint text, never its value: it does not go
   into the prompt, and a select with it is an error.
+- A default goes **inside `candidates`, beside `values`**, as
+  `candidates.default`, and must be one of the values. A select whose
+  candidates come from a command, and a textarea, have no default.
 - Conditionals are **Mustache sections**, `{{#inputs.x}}…{{/inputs.x}}` (shown
   when `x` has a value) and `{{^inputs.x}}…{{/inputs.x}}` (when it has none),
   not `{{#if}}`.

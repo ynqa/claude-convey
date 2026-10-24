@@ -7,6 +7,7 @@ import {
   decodeCandidates,
   dependenciesOf,
   dependentsOf,
+  initialValues,
   missingRequired,
   parseTemplate,
   render,
@@ -134,10 +135,11 @@ export async function previewText($: EngineInterface) {
   return entry ? renderPreview(entry.template, await read($, values)) : null
 }
 
-/** Shows a template's form, starting empty, and loads its command candidates. */
+/** Shows a template's form, starting at its defaults, and loads its command candidates. */
 export async function selectTemplate($: EngineInterface, path: string) {
   await update($, selected, () => path)
-  await update($, values, () => ({}))
+  const entry = await selectedEntry($)
+  await update($, values, () => (entry ? initialValues(entry.template) : {}))
   await update($, candidates, () => ({}))
   await update($, submits, () => ({}))
   await loadReadyCandidates($)

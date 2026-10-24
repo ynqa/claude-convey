@@ -132,11 +132,13 @@ output:
 | `inputs.<名前>.description` | フォームで欄の名前の下に出る説明。プロンプトには入らない |
 | `inputs.<名前>.placeholder` | 空の textarea に薄く表示するヒント。値ではないので、プロンプトには入らない |
 | `inputs.<名前>.candidates.values` | select の固定の選択肢（文字列のリスト） |
+| `inputs.<名前>.candidates.default` | フォームを開いたときに選ばれている選択肢。`values` のどれか。変えずに Fill するとそのまま入る |
 | `inputs.<名前>.candidates.command` | select の候補を出すコマンド（`program` と `args`） |
 | `inputs.<名前>.depends_on` | 値を待つ select の名前のリスト |
 | `output.template` | プロンプトの形（必須） |
 
-select の `candidates` には、`values` か `command` のどちらか片方を書きます。
+select の `candidates` には、`values` か `command` のどちらか片方を書きます。`default` は
+`values` の隣にだけ書けます。コマンドの候補は実行するまで分からないためです。
 ここにないフィールドを書くと、エラーになります。
 
 ### コマンドの候補

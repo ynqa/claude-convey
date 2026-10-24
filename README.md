@@ -134,11 +134,13 @@ output:
 | `inputs.<name>.description` | A note shown under the input's name in the form. It isn't put in the prompt |
 | `inputs.<name>.placeholder` | Dim hint text shown in an empty textarea. It isn't a value and doesn't go into the prompt |
 | `inputs.<name>.candidates.values` | Fixed choices for a select (a list of strings) |
+| `inputs.<name>.candidates.default` | The choice picked when the form opens; one of `values`. Fill inserts it if left unchanged |
 | `inputs.<name>.candidates.command` | A command that produces a select's candidates (`program` and `args`) |
 | `inputs.<name>.depends_on` | Names of the selects whose values this one waits for |
 | `output.template` | The shape of the prompt (required) |
 
-A select's `candidates` takes exactly one of `values` or `command`.
+A select's `candidates` takes exactly one of `values` or `command`. `default` can
+only go beside `values`: a command's candidates aren't known until it runs.
 Any field not listed here is an error.
 
 ### Command candidates

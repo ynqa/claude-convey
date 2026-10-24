@@ -16,7 +16,11 @@ export type ConveyInput =
       description?: string
       /** Earlier select inputs whose values the command's templates use. */
       depends_on?: string[]
-      candidates: { values: string[] } | { command: ConveyCommand }
+      /**
+       * Fixed `values`, with an optional `default` among them that the form starts
+       * with, or a `command` whose output lists them (which takes no default).
+       */
+      candidates: { values: string[]; default?: string } | { command: ConveyCommand }
     }
   | {
       type: 'textarea'

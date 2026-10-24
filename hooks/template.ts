@@ -51,7 +51,7 @@ function checkInput(name: string, input: unknown, earlierSelects: string[]): ass
 
   const candidates = input.candidates
   if (!isMap(candidates)) throw new Error(`select input ${name} requires candidates`)
-  onlyFields(candidates, ['values', 'command'], `candidates of ${name}`)
+  onlyFields(candidates, ['values', 'default', 'command'], `candidates of ${name}`)
   if ((candidates.values === undefined) === (candidates.command === undefined)) {
     throw new Error(`candidates of ${name} need exactly one of values or command`)
   }
@@ -60,8 +60,15 @@ function checkInput(name: string, input: unknown, earlierSelects: string[]): ass
     if (!isStringList(candidates.values) || candidates.values.length === 0) {
       throw new Error(`candidates.values of ${name} must be a non-empty list of strings`)
     }
+    const fallback = candidates.default
+    if (fallback !== undefined && (typeof fallback !== 'string' || !candidates.values.includes(fallback))) {
+      throw new Error(`candidates.default of ${name} must be one of its values`)
+    }
     return
   }
+  // A command's candidates are known only once it has run, and the person can pick an
+  // earlier input again meanwhile, so a default there could be picked from stale candidates.
+  if (candidates.default !== undefined) throw new Error(`candidates.default of ${name} needs values, not command`)
 
   const command = candidates.command
   if (!isMap(command)) throw new Error(`candidates.command of ${name} must be a mapping`)
@@ -185,6 +192,17 @@ export function commandArgv(command: Command, values: Record<string, string>): s
 /** The dependencies of `input` that have no value yet. */
 export function waitingFor(input: Input, values: Record<string, string>): string[] {
   return dependenciesOf(input).filter(dependency => !values[dependency])
+}
+
+/** The values a template's form starts with: the `candidates.default` of each select that has one. */
+export function initialValues(template: Template): Record<string, string> {
+  const initial: Record<string, string> = {}
+  for (const [name, input] of Object.entries(template.inputs)) {
+    if (input.type === 'select' && 'values' in input.candidates && input.candidates.default !== undefined) {
+      initial[name] = input.candidates.default
+    }
+  }
+  return initial
 }
 
 /** The inputs that depend on `changed`, directly or through another input, in file order. */

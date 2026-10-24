@@ -11,6 +11,7 @@ inputs:
     description:               # a note shown under the title, not in the prompt
     candidates:
       values: []               # at least one string
+      default:                 # optional; one of the values, picked when the form opens
 
   # A select whose choices are a command's output, one per line.
   listed_choice:
