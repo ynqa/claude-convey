@@ -102,9 +102,18 @@ const keys = {
  * A field: its title on one line, in the accent color so it reads apart
  * from what is entered, and the control (or its loading state) indented below.
  * An input's title carries a mark, ✓ once it has a value and ○ until then,
- * which also lines the title up with the control under it.
+ * which also lines the title up with the control under it. A description goes
+ * dim between the two, lined up the same way, so it reads as a note on the
+ * title rather than as part of it or of what is entered.
  */
-function Field({ el: { Box, Text } }: Ctx, title: string, isRequired: boolean, control: RenderElement, isFilled?: boolean) {
+function Field(
+  { el: { Box, Text } }: Ctx,
+  title: string,
+  isRequired: boolean,
+  control: RenderElement,
+  isFilled?: boolean,
+  description?: string,
+) {
   return (
     <Box flexDirection="column">
       <Box>
@@ -115,6 +124,11 @@ function Field({ el: { Box, Text } }: Ctx, title: string, isRequired: boolean, c
         </Text>
         {isRequired && <Text color="warning"> *</Text>}
       </Box>
+      {description !== undefined && (
+        <Box paddingLeft={isFilled !== undefined ? 2 : 0}>
+          <Text dimColor>{description}</Text>
+        </Box>
+      )}
       <Box paddingLeft={2}>{control}</Box>
     </Box>
   )
@@ -291,7 +305,14 @@ export async function Form($: EngineInterface, el: FormElements, columns: number
       {Chooser($, ctx)}
       <Box flexDirection="column" gap={1} borderStyle="round" paddingX={1}>
         {Object.entries(template.inputs).map(([name, input]) =>
-          Field(ctx, name, !allowsEmpty(input), Control($, ctx, name, input), Boolean(ctx.current[name]?.trim())),
+          Field(
+            ctx,
+            name,
+            !allowsEmpty(input),
+            Control($, ctx, name, input),
+            Boolean(ctx.current[name]?.trim()),
+            input.description,
+          ),
         )}
       </Box>
       {FillRow($, ctx)}

@@ -103,6 +103,35 @@ output:
   })
 })
 
+describe('description', () => {
+  const source = (description: string) => `name: x
+inputs:
+  environment:
+    type: select
+    description: ${description}
+    candidates:
+      values: [staging]
+  request:
+    type: textarea
+    description: ${description}
+output:
+  template: t
+`
+
+  test('is read on selects and textareas', async () => {
+    const { inputs } = parseTemplate(source('Where it happened'))
+    expect(inputs.environment?.description).toBe('Where it happened')
+    expect(inputs.request?.description).toBe('Where it happened')
+  })
+
+  test('rejects a description that is not a string or is empty', async () => {
+    expect(() => parseTemplate(source('[one, two]'))).toThrow('description of environment must be a non-empty string')
+    expect(() => parseTemplate(source('42'))).toThrow('description of environment must be a non-empty string')
+    expect(() => parseTemplate(source('""'))).toThrow('description of environment must be a non-empty string')
+    expect(() => parseTemplate(source('" "'))).toThrow('description of environment must be a non-empty string')
+  })
+})
+
 describe('depends_on', () => {
   const CHAIN = `name: chain
 inputs:
