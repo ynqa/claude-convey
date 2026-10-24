@@ -28,6 +28,16 @@ const submits = atom({ plugin: 'convey', key: 'submits' } as const, {})
 export const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 /**
+ * The path `/convey`'s argument names, or the default folder when it names none.
+ * Picking a path from the prompt box's `@` typeahead leaves it as `@examples`,
+ * or `@"my templates"` when it has a space, so that mark and its quotes are dropped.
+ */
+export function targetOf(args: string): string {
+  const path = args.trim().replace(/^@/, '').replace(/^"(.*)"$/, '$1')
+  return path || DEFAULT_DIR
+}
+
+/**
  * Reads `target` (a file, or a directory whose files are each tried) and keeps
  * what parses as a template; the rest is reported as skipped.
  */

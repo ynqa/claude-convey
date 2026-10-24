@@ -8,6 +8,7 @@ import {
   message,
   previewTitle,
   showTemplates,
+  targetOf,
 } from './actions'
 import { Form } from './form'
 import { Preview } from './preview'
@@ -22,7 +23,7 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'convey' }, async ($, e) => {
-    const target = e.args.trim() || DEFAULT_DIR
+    const target = targetOf(e.args)
     let loaded: Awaited<ReturnType<typeof loadTemplates>>
     try {
       loaded = await loadTemplates($, target)

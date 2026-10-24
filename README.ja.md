@@ -59,6 +59,8 @@ Claude Code で `/convey` を実行すると、フォームが開きます。
 - `/convey path/to/dir`：指定したディレクトリのテンプレートを読み込む
 - `/convey path/to/template.yaml`：指定したファイルだけを読み込む
 
+入力欄の `@` の補完で選んだパス（`/convey @examples` など）も、そのまま使えます。
+
 読み込めなかったファイルは、返答に `skipped <パス>: <理由>` と出ます。
 
 ### フォーム
