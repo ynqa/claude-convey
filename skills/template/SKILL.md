@@ -45,9 +45,9 @@ Where it is stricter or different, follow it:
   only, never in the prompt.
 - `placeholder` is a textarea's dim hint text, never its value: it does not go
   into the prompt, and a select with it is an error.
-- `default` is a real value, which Fill inserts if left unchanged. With fixed
-  `values` it must be one of them; with a command it is picked only when the
-  command's output holds it, so check that it does.
+- A default goes **inside `candidates`, beside `values`**, as
+  `candidates.default`, and must be one of the values. A select whose
+  candidates come from a command, and a textarea, have no default.
 - Conditionals are **Mustache sections**, `{{#inputs.x}}…{{/inputs.x}}` (shown
   when `x` has a value) and `{{^inputs.x}}…{{/inputs.x}}` (when it has none),
   not `{{#if}}`.

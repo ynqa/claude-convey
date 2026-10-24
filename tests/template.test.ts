@@ -154,59 +154,53 @@ describe('placeholder', () => {
   })
 })
 
-describe('default', () => {
+describe('candidates.default', () => {
   const DEFAULTS = `name: x
 inputs:
   environment:
     type: select
-    default: staging
     candidates:
       values: [development, staging, production]
+      default: staging
   branch:
     type: select
-    default: main
     candidates:
       command:
         program: git
         args: [branch, --format=%(refname:short)]
   request:
     type: textarea
-    default: Summarize the incident.
 output:
   template: t
 `
 
-  test('keeps a default on a select and a textarea', async () => {
-    const template = parseTemplate(DEFAULTS)
-    expect(template.inputs.environment).toEqual({
+  test('keeps a default beside fixed values', async () => {
+    expect(parseTemplate(DEFAULTS).inputs.environment).toEqual({
       type: 'select',
-      default: 'staging',
-      candidates: { values: ['development', 'staging', 'production'] },
+      candidates: { values: ['development', 'staging', 'production'], default: 'staging' },
     })
-    expect(template.inputs.request).toEqual({ type: 'textarea', default: 'Summarize the incident.' })
   })
 
-  test('accepts any default on command candidates, which are unknown until they load', async () => {
-    expect(parseTemplate(DEFAULTS).inputs.branch).toMatchObject({ default: 'main' })
+  test('rejects a default that is not one of the values', async () => {
+    for (const value of ['qa', '[staging]', '3']) {
+      expect(() => parseTemplate(DEFAULTS.replace('default: staging', `default: ${value}`))).toThrow(
+        'candidates.default of environment must be one of its values',
+      )
+    }
   })
 
-  test('rejects a default that is not one of the fixed values', async () => {
-    expect(() => parseTemplate(DEFAULTS.replace('default: staging', 'default: qa'))).toThrow(
-      'default of environment must be one of its candidates.values',
-    )
+  test('rejects a default beside a command', async () => {
+    const source = DEFAULTS.replace('      command:\n', '      default: main\n      command:\n')
+    expect(() => parseTemplate(source)).toThrow('candidates.default of branch needs values, not command')
   })
 
-  test('rejects a default that is not a string', async () => {
-    expect(() => parseTemplate(DEFAULTS.replace('default: Summarize the incident.', 'default: [a]'))).toThrow(
-      'default of request must be a string',
-    )
+  test('rejects a default on the input itself', async () => {
+    const source = DEFAULTS.replace('  request:\n    type: textarea\n', '  request:\n    type: textarea\n    default: hi\n')
+    expect(() => parseTemplate(source)).toThrow('unknown field in input request: default')
   })
 
-  test('starts with the defaults of textareas and fixed-values selects', async () => {
-    expect(initialValues(parseTemplate(DEFAULTS))).toEqual({
-      environment: 'staging',
-      request: 'Summarize the incident.',
-    })
+  test('starts the form with each default', async () => {
+    expect(initialValues(parseTemplate(DEFAULTS))).toEqual({ environment: 'staging' })
     expect(initialValues(TEMPLATE)).toEqual({})
   })
 })

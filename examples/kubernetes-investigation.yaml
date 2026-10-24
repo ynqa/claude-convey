@@ -24,9 +24,9 @@ inputs:
 
   resource_kind:
     type: select
-    default: pod
     candidates:
       values: [pod, deployment, statefulset, daemonset, service, job]
+      default: pod
 
   resource:
     type: select

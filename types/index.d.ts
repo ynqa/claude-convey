@@ -14,14 +14,13 @@ export type ConveyInput =
       allow_empty?: boolean
       /** Shown under the input's title to explain it; never put in the prompt. */
       description?: string
-      /**
-       * The value picked when the form is shown. It must be one of fixed
-       * `values`; with a command it is picked once the candidates load, if it is among them.
-       */
-      default?: string
       /** Earlier select inputs whose values the command's templates use. */
       depends_on?: string[]
-      candidates: { values: string[] } | { command: ConveyCommand }
+      /**
+       * Fixed `values`, with an optional `default` among them that the form starts
+       * with, or a `command` whose output lists them (which takes no default).
+       */
+      candidates: { values: string[]; default?: string } | { command: ConveyCommand }
     }
   | {
       type: 'textarea'
@@ -30,8 +29,6 @@ export type ConveyInput =
       description?: string
       /** Dim hint text shown while the field is empty. Never a value; it does not reach the prompt. */
       placeholder?: string
-      /** The text the field starts with, which Fill inserts if it is left unchanged. */
-      default?: string
     }
 
 /** A template YAML file, in convey's format. */

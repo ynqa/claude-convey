@@ -131,13 +131,14 @@ output:
 | `inputs.<名前>.allow_empty` | `false` で必須。既定は `true` |
 | `inputs.<名前>.description` | フォームで欄の名前の下に出る説明。プロンプトには入らない |
 | `inputs.<名前>.placeholder` | 空の textarea に薄く表示するヒント。値ではないので、プロンプトには入らない |
-| `inputs.<名前>.default` | フォームを開いたときの欄の初期値。変えずに Fill するとそのまま入る。固定の `values` では、そのどれかでなければならない |
 | `inputs.<名前>.candidates.values` | select の固定の選択肢（文字列のリスト） |
+| `inputs.<名前>.candidates.default` | フォームを開いたときに選ばれている選択肢。`values` のどれか。変えずに Fill するとそのまま入る |
 | `inputs.<名前>.candidates.command` | select の候補を出すコマンド（`program` と `args`） |
 | `inputs.<名前>.depends_on` | 値を待つ select の名前のリスト |
 | `output.template` | プロンプトの形（必須） |
 
-select の `candidates` には、`values` か `command` のどちらか片方を書きます。
+select の `candidates` には、`values` か `command` のどちらか片方を書きます。`default` は
+`values` の隣にだけ書けます。コマンドの候補は実行するまで分からないためです。
 ここにないフィールドを書くと、エラーになります。
 
 ### コマンドの候補
@@ -160,9 +161,6 @@ select の `candidates` には、`values` か `command` のどちらか片方を
 - 終了コードが 0 以外のとき、または 30 秒を超えたときは、エラーとして Retry が出ます
 - `args` で使う欄は、すべて `depends_on` に書きます。`depends_on` に書けるのは、
   自分より前にある select だけです
-- `default` は、候補が読み込まれたときに、その中にあってまだ何も選ばれていなければ選ばれます。
-  なければ欄は空のままです。選ばれると、それを待つ欄も選んだときと同じように読み込まれます。
-  前の欄を選び直して消えたときも、候補を読み込み直すと再び選ばれます
 
 ### プロンプトの形（output.template）
 
