@@ -20,7 +20,7 @@ function onlyFields(map: YamlMap, fields: string[], where: string) {
 /** `earlierSelects` are the select inputs listed before this one. */
 function checkInput(name: string, input: unknown, earlierSelects: string[]): asserts input is Input {
   if (!isMap(input)) throw new Error(`input ${name} must be a mapping`)
-  onlyFields(input, ['type', 'allow_empty', 'description', 'depends_on', 'candidates'], `input ${name}`)
+  onlyFields(input, ['type', 'allow_empty', 'description', 'depends_on', 'candidates', 'placeholder'], `input ${name}`)
   if (input.allow_empty !== undefined && typeof input.allow_empty !== 'boolean') {
     throw new Error(`allow_empty of ${name} must be true or false`)
   }
@@ -31,9 +31,13 @@ function checkInput(name: string, input: unknown, earlierSelects: string[]): ass
   if (input.type === 'textarea') {
     if (input.candidates !== undefined) throw new Error(`textarea input ${name} cannot define candidates`)
     if (input.depends_on !== undefined) throw new Error(`textarea input ${name} cannot define depends_on`)
+    if (input.placeholder !== undefined && (typeof input.placeholder !== 'string' || input.placeholder === '')) {
+      throw new Error(`placeholder of ${name} must be a non-empty string`)
+    }
     return
   }
   if (input.type !== 'select') throw new Error(`input ${name} must have type select or textarea`)
+  if (input.placeholder !== undefined) throw new Error(`select input ${name} cannot define placeholder`)
 
   if (input.depends_on !== undefined) {
     if (!isStringList(input.depends_on)) throw new Error(`depends_on of ${name} must be a list of input names`)

@@ -132,6 +132,7 @@ output:
 | `inputs.<name>.type` | `select` (pick) or `textarea` (write) |
 | `inputs.<name>.allow_empty` | `false` makes it required. Defaults to `true` |
 | `inputs.<name>.description` | A note shown under the input's name in the form. It isn't put in the prompt |
+| `inputs.<name>.placeholder` | Dim hint text shown in an empty textarea. It isn't a value and doesn't go into the prompt |
 | `inputs.<name>.candidates.values` | Fixed choices for a select (a list of strings) |
 | `inputs.<name>.candidates.command` | A command that produces a select's candidates (`program` and `args`) |
 | `inputs.<name>.depends_on` | Names of the selects whose values this one waits for |

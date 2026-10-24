@@ -33,6 +33,7 @@ inputs:
   free_text:
     type: textarea
     allow_empty: true
+    placeholder:               # hint shown while empty, never a value
 
 output:
   # Mustache: {{ inputs.<name> }} is a value; {{#inputs.<name>}}…{{/inputs.<name>}}

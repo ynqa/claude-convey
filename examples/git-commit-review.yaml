@@ -20,6 +20,7 @@ inputs:
   request:
     type: textarea
     description: What to look at
+    placeholder: e.g. Check the error handling and suggest missing tests
 
 output:
   template: |
