@@ -19,6 +19,7 @@ inputs:
 
   request:
     type: textarea
+    description: What to look at
 
 output:
   template: |

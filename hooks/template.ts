@@ -20,9 +20,12 @@ function onlyFields(map: YamlMap, fields: string[], where: string) {
 /** `earlierSelects` are the select inputs listed before this one. */
 function checkInput(name: string, input: unknown, earlierSelects: string[]): asserts input is Input {
   if (!isMap(input)) throw new Error(`input ${name} must be a mapping`)
-  onlyFields(input, ['type', 'allow_empty', 'depends_on', 'candidates'], `input ${name}`)
+  onlyFields(input, ['type', 'allow_empty', 'description', 'depends_on', 'candidates'], `input ${name}`)
   if (input.allow_empty !== undefined && typeof input.allow_empty !== 'boolean') {
     throw new Error(`allow_empty of ${name} must be true or false`)
+  }
+  if (input.description !== undefined && (typeof input.description !== 'string' || input.description.trim() === '')) {
+    throw new Error(`description of ${name} must be a non-empty string`)
   }
 
   if (input.type === 'textarea') {

@@ -12,11 +12,18 @@ export type ConveyInput =
   | {
       type: 'select'
       allow_empty?: boolean
+      /** Shown under the input's title to explain it; never put in the prompt. */
+      description?: string
       /** Earlier select inputs whose values the command's templates use. */
       depends_on?: string[]
       candidates: { values: string[] } | { command: ConveyCommand }
     }
-  | { type: 'textarea'; allow_empty?: boolean }
+  | {
+      type: 'textarea'
+      allow_empty?: boolean
+      /** Shown under the input's title to explain it; never put in the prompt. */
+      description?: string
+    }
 
 /** A template YAML file, in convey's format. */
 export type ConveyTemplate = {

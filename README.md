@@ -111,6 +111,7 @@ inputs:                          # the form's inputs, in the order written
 
   request:
     type: textarea               # free text
+    description: What to look at # shown under the input's name, not put in the prompt
 
 output:
   template: |                    # Mustache; values go in as {{ inputs.<name> }}
@@ -130,6 +131,7 @@ output:
 | `inputs` | Input definitions. Keys are input names; at least one is required |
 | `inputs.<name>.type` | `select` (pick) or `textarea` (write) |
 | `inputs.<name>.allow_empty` | `false` makes it required. Defaults to `true` |
+| `inputs.<name>.description` | A note shown under the input's name in the form. It isn't put in the prompt |
 | `inputs.<name>.candidates.values` | Fixed choices for a select (a list of strings) |
 | `inputs.<name>.candidates.command` | A command that produces a select's candidates (`program` and `args`) |
 | `inputs.<name>.depends_on` | Names of the selects whose values this one waits for |
