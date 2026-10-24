@@ -5,6 +5,7 @@ import {
   commandArgv,
   decodeCandidates,
   dependentsOf,
+  initialValues,
   missingRequired,
   parseTemplate,
   render,
@@ -150,6 +151,63 @@ describe('placeholder', () => {
       const source = withInput(`    type: textarea\n    placeholder: ${value}\n`)
       expect(() => parseTemplate(source)).toThrow('placeholder of a must be a non-empty string')
     }
+  })
+})
+
+describe('default', () => {
+  const DEFAULTS = `name: x
+inputs:
+  environment:
+    type: select
+    default: staging
+    candidates:
+      values: [development, staging, production]
+  branch:
+    type: select
+    default: main
+    candidates:
+      command:
+        program: git
+        args: [branch, --format=%(refname:short)]
+  request:
+    type: textarea
+    default: Summarize the incident.
+output:
+  template: t
+`
+
+  test('keeps a default on a select and a textarea', async () => {
+    const template = parseTemplate(DEFAULTS)
+    expect(template.inputs.environment).toEqual({
+      type: 'select',
+      default: 'staging',
+      candidates: { values: ['development', 'staging', 'production'] },
+    })
+    expect(template.inputs.request).toEqual({ type: 'textarea', default: 'Summarize the incident.' })
+  })
+
+  test('accepts any default on command candidates, which are unknown until they load', async () => {
+    expect(parseTemplate(DEFAULTS).inputs.branch).toMatchObject({ default: 'main' })
+  })
+
+  test('rejects a default that is not one of the fixed values', async () => {
+    expect(() => parseTemplate(DEFAULTS.replace('default: staging', 'default: qa'))).toThrow(
+      'default of environment must be one of its candidates.values',
+    )
+  })
+
+  test('rejects a default that is not a string', async () => {
+    expect(() => parseTemplate(DEFAULTS.replace('default: Summarize the incident.', 'default: [a]'))).toThrow(
+      'default of request must be a string',
+    )
+  })
+
+  test('starts with the defaults of textareas and fixed-values selects', async () => {
+    expect(initialValues(parseTemplate(DEFAULTS))).toEqual({
+      environment: 'staging',
+      request: 'Summarize the incident.',
+    })
+    expect(initialValues(TEMPLATE)).toEqual({})
   })
 })
 

@@ -7,6 +7,7 @@ import {
   decodeCandidates,
   dependenciesOf,
   dependentsOf,
+  initialValues,
   missingRequired,
   parseTemplate,
   render,
@@ -75,8 +76,18 @@ export async function selectedEntry($: EngineInterface) {
  * Loads one command-backed select with the current values. The result is kept
  * only while the same template is shown and the values the command ran with
  * are still the current ones, so a slow command cannot overwrite a newer form.
+ *
+ * Once kept, `initial` (the input's default) is picked if the input has no value
+ * and the candidates hold it, and then whatever depends on it loads, as after a pick.
  */
-async function loadCandidates($: EngineInterface, path: string, name: string, command: Command, dependsOn: string[]) {
+async function loadCandidates(
+  $: EngineInterface,
+  path: string,
+  name: string,
+  command: Command,
+  dependsOn: string[],
+  initial: string | undefined,
+) {
   const current = await read($, values)
   const ranWith = JSON.stringify(dependsOn.map(dependency => current[dependency]))
   const loading: Candidates = { status: 'loading' }
@@ -92,7 +103,16 @@ async function loadCandidates($: EngineInterface, path: string, name: string, co
   if ((await read($, selected)) !== path) return
   const now = await read($, values)
   if (JSON.stringify(dependsOn.map(dependency => now[dependency])) !== ranWith) return
-  await update($, candidates, loaded => (loaded[name]?.status === 'loading' ? { ...loaded, [name]: result } : loaded))
+  // Set on each try of the update, so it ends up telling whether the written one kept the result.
+  let isKept = false
+  await update($, candidates, loaded => {
+    isKept = loaded[name]?.status === 'loading'
+    return isKept ? { ...loaded, [name]: result } : loaded
+  })
+  if (!isKept || result.status !== 'ready' || initial === undefined || !result.values.includes(initial)) return
+  if ((await read($, selected)) !== path || (await read($, values))[name]) return
+  await update($, values, entered => (entered[name] ? entered : { ...entered, [name]: initial }))
+  await loadReadyCandidates($)
 }
 
 /** Starts every command-backed select whose dependencies have values and whose candidates are not loaded. */
@@ -104,7 +124,7 @@ async function loadReadyCandidates($: EngineInterface) {
   for (const [name, input] of Object.entries(entry.template.inputs)) {
     if (input.type !== 'select' || !('command' in input.candidates) || loaded[name]) continue
     if (waitingFor(input, current).length > 0) continue
-    void loadCandidates($, entry.path, name, input.candidates.command, dependenciesOf(input))
+    void loadCandidates($, entry.path, name, input.candidates.command, dependenciesOf(input), input.default)
   }
 }
 
@@ -134,10 +154,14 @@ export async function previewText($: EngineInterface) {
   return entry ? renderPreview(entry.template, await read($, values)) : null
 }
 
-/** Shows a template's form, starting empty, and loads its command candidates. */
+/**
+ * Shows a template's form, starting at its defaults, and loads its command candidates
+ * (whose own defaults are picked as they load).
+ */
 export async function selectTemplate($: EngineInterface, path: string) {
   await update($, selected, () => path)
-  await update($, values, () => ({}))
+  const entry = await selectedEntry($)
+  await update($, values, () => (entry ? initialValues(entry.template) : {}))
   await update($, candidates, () => ({}))
   await update($, submits, () => ({}))
   await loadReadyCandidates($)

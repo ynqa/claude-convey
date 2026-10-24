@@ -20,12 +20,19 @@ function onlyFields(map: YamlMap, fields: string[], where: string) {
 /** `earlierSelects` are the select inputs listed before this one. */
 function checkInput(name: string, input: unknown, earlierSelects: string[]): asserts input is Input {
   if (!isMap(input)) throw new Error(`input ${name} must be a mapping`)
-  onlyFields(input, ['type', 'allow_empty', 'description', 'depends_on', 'candidates', 'placeholder'], `input ${name}`)
+  onlyFields(
+    input,
+    ['type', 'allow_empty', 'description', 'default', 'depends_on', 'candidates', 'placeholder'],
+    `input ${name}`,
+  )
   if (input.allow_empty !== undefined && typeof input.allow_empty !== 'boolean') {
     throw new Error(`allow_empty of ${name} must be true or false`)
   }
   if (input.description !== undefined && (typeof input.description !== 'string' || input.description.trim() === '')) {
     throw new Error(`description of ${name} must be a non-empty string`)
+  }
+  if (input.default !== undefined && typeof input.default !== 'string') {
+    throw new Error(`default of ${name} must be a string`)
   }
 
   if (input.type === 'textarea') {
@@ -59,6 +66,9 @@ function checkInput(name: string, input: unknown, earlierSelects: string[]): ass
   if (candidates.values !== undefined) {
     if (!isStringList(candidates.values) || candidates.values.length === 0) {
       throw new Error(`candidates.values of ${name} must be a non-empty list of strings`)
+    }
+    if (input.default !== undefined && !candidates.values.includes(input.default)) {
+      throw new Error(`default of ${name} must be one of its candidates.values`)
     }
     return
   }
@@ -185,6 +195,21 @@ export function commandArgv(command: Command, values: Record<string, string>): s
 /** The dependencies of `input` that have no value yet. */
 export function waitingFor(input: Input, values: Record<string, string>): string[] {
   return dependenciesOf(input).filter(dependency => !values[dependency])
+}
+
+/**
+ * The values a template's form starts with: the defaults of its textareas and
+ * fixed-values selects. A command-backed select's default waits for its
+ * candidates, since only they tell whether it can be picked.
+ */
+export function initialValues(template: Template): Record<string, string> {
+  const initial: Record<string, string> = {}
+  for (const [name, input] of Object.entries(template.inputs)) {
+    if (input.default === undefined) continue
+    if (input.type === 'select' && 'command' in input.candidates) continue
+    initial[name] = input.default
+  }
+  return initial
 }
 
 /** The inputs that depend on `changed`, directly or through another input, in file order. */
