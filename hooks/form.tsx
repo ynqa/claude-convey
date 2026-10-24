@@ -102,9 +102,9 @@ const keys = {
  * A field: its title on one line, in the accent color so it reads apart
  * from what is entered, and the control (or its loading state) indented below.
  * An input's title carries a mark, ✓ once it has a value and ○ until then,
- * which also lines the title up with the control under it. A description goes
- * dim between the two, lined up the same way, so it reads as a note on the
- * title rather than as part of it or of what is entered.
+ * which also lines the title up with the control under it. A description follows
+ * the title on its line, after a colon and in the plain text color: the dim color
+ * is the placeholder's, so a dim line between title and control would read as one.
  */
 function Field(
   { el: { Box, Text } }: Ctx,
@@ -122,13 +122,13 @@ function Field(
         <Text weight="bold" color="claude">
           {title}
         </Text>
+        {description !== undefined && (
+          <Box flexShrink={1} minWidth={0}>
+            <Text>: {description}</Text>
+          </Box>
+        )}
         {isRequired && <Text color="warning"> *</Text>}
       </Box>
-      {description !== undefined && (
-        <Box paddingLeft={isFilled !== undefined ? 2 : 0}>
-          <Text dimColor>{description}</Text>
-        </Box>
-      )}
       <Box paddingLeft={2}>{control}</Box>
     </Box>
   )

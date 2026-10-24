@@ -109,7 +109,7 @@ inputs:                          # フォームの欄。書いた順に並ぶ
 
   request:
     type: textarea               # 自由に書く欄
-    description: What to look at # 欄の名前の下に出る説明。プロンプトには入らない
+    description: What to look at # 欄の名前の横に出る説明。プロンプトには入らない
 
 output:
   template: |                    # Mustache。値は {{ inputs.<名前> }} で入る
@@ -129,7 +129,7 @@ output:
 | `inputs` | 欄の定義。キーが欄の名前で、1 つ以上必要 |
 | `inputs.<名前>.type` | `select`（選ぶ）か `textarea`（書く） |
 | `inputs.<名前>.allow_empty` | `false` で必須。既定は `true` |
-| `inputs.<名前>.description` | フォームで欄の名前の下に出る説明。プロンプトには入らない |
+| `inputs.<名前>.description` | フォームで欄の名前の横に出る説明。プロンプトには入らない |
 | `inputs.<名前>.placeholder` | 空の textarea に薄く表示するヒント。値ではないので、プロンプトには入らない |
 | `inputs.<名前>.candidates.values` | select の固定の選択肢（文字列のリスト） |
 | `inputs.<名前>.candidates.default` | フォームを開いたときに選ばれている選択肢。`values` のどれか。変えずに Fill するとそのまま入る |
