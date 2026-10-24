@@ -61,6 +61,8 @@ Run `/convey` in Claude Code to open the form.
 - `/convey path/to/dir`: loads the templates in that directory
 - `/convey path/to/template.yaml`: loads only that file
 
+A path picked with `@` in the prompt box, such as `/convey @examples`, works as well.
+
 Files that can't be loaded are listed in the reply as `skipped <path>: <reason>`.
 
 ### The form
