@@ -23,6 +23,8 @@ export type ConveyInput =
       allow_empty?: boolean
       /** Shown under the input's title to explain it; never put in the prompt. */
       description?: string
+      /** Dim hint text shown while the field is empty. Never a value; it does not reach the prompt. */
+      placeholder?: string
     }
 
 /** A template YAML file, in convey's format. */

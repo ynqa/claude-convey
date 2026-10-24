@@ -132,6 +132,27 @@ output:
   })
 })
 
+describe('placeholder', () => {
+  const withInput = (input: string) => `name: x\ninputs:\n  a:\n${input}output:\n  template: t\n`
+
+  test('reads a textarea placeholder', async () => {
+    const source = withInput('    type: textarea\n    placeholder: What went wrong\n')
+    expect(parseTemplate(source).inputs.a).toEqual({ type: 'textarea', placeholder: 'What went wrong' })
+  })
+
+  test('rejects a placeholder on a select', async () => {
+    const source = withInput('    type: select\n    placeholder: Pick one\n    candidates:\n      values: [one]\n')
+    expect(() => parseTemplate(source)).toThrow('select input a cannot define placeholder')
+  })
+
+  test('rejects a placeholder that is not a non-empty string', async () => {
+    for (const value of ['""', '3', '[hint]', '']) {
+      const source = withInput(`    type: textarea\n    placeholder: ${value}\n`)
+      expect(() => parseTemplate(source)).toThrow('placeholder of a must be a non-empty string')
+    }
+  })
+})
+
 describe('depends_on', () => {
   const CHAIN = `name: chain
 inputs:

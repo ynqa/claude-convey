@@ -207,11 +207,12 @@ function CandidateError($: EngineInterface, ctx: Ctx, name: string, state: Extra
 function Control($: EngineInterface, ctx: Ctx, name: string, input: ConveyInput) {
   const { current, loaded, el: { Text, Input, Select } } = ctx
   if (input.type === 'textarea') {
-    // The placeholder gives an empty field something to click; Enter moves on to the next field.
+    // The placeholder gives an empty field something to click, so one is always set, falling
+    // back to `Enter <name>…` when the template has none; Enter moves on to the next field.
     return (
       <Input
         key={keys.field(name, ctx.submitted[name])}
-        placeholder={`Enter ${name}…`}
+        placeholder={input.placeholder ?? `Enter ${name}…`}
         value={current[name] ?? ''}
         submitLabel="next"
         onInput={text => void enter($, name, text)}
