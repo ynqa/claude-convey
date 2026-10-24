@@ -19,6 +19,7 @@ level, is rejected as `unknown field in <where>: <key>`.
 | `allow_empty` | both | `true` or `false`, default `true`; `false` makes the input required (a yellow ` *`, and Fill refuses while it is empty or blank) |
 | `description` | both | a non-empty string, optional; shown dim under the input's title to say what to enter, and never put in the prompt |
 | `placeholder` | textarea only | a non-empty string, the dim hint shown while the field is empty (default `Enter <name>…`); never a value and never in the prompt; a select with it is an error |
+| `default` | both | a string, optional and not Mustache; the value the input starts with each time the form opens, which Fill inserts if left unchanged. With `candidates.values` it must be one of them; with `candidates.command` it is picked when the candidates load, if it is among them and nothing is picked yet, and otherwise the input stays empty |
 | `candidates` | select only | a mapping with exactly one of `values` or `command`; a textarea with it is an error |
 | `candidates.values` | select | a non-empty list of strings |
 | `candidates.command.program` | select | a non-empty string |

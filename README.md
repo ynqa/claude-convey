@@ -133,6 +133,7 @@ output:
 | `inputs.<name>.allow_empty` | `false` makes it required. Defaults to `true` |
 | `inputs.<name>.description` | A note shown under the input's name in the form. It isn't put in the prompt |
 | `inputs.<name>.placeholder` | Dim hint text shown in an empty textarea. It isn't a value and doesn't go into the prompt |
+| `inputs.<name>.default` | The value the input starts with when the form opens. Fill inserts it if left unchanged. For fixed `values`, it must be one of them |
 | `inputs.<name>.candidates.values` | Fixed choices for a select (a list of strings) |
 | `inputs.<name>.candidates.command` | A command that produces a select's candidates (`program` and `args`) |
 | `inputs.<name>.depends_on` | Names of the selects whose values this one waits for |
@@ -162,6 +163,10 @@ Any field not listed here is an error.
 - A non-zero exit code, or running longer than 30 seconds, shows as an error with Retry
 - Every input used in `args` must be listed in `depends_on`. `depends_on` can only
   name selects that come before this input
+- A `default` is picked when the candidates load, if it is among them and nothing
+  is picked yet. Otherwise the input stays empty. Inputs that depend on it then load
+  as if it had been picked. When picking an earlier input again clears it, it is
+  picked again once its candidates reload
 
 ### The prompt (output.template)
 

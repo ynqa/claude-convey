@@ -9,6 +9,7 @@ inputs:
     type: select
     allow_empty: true          # false makes it required; true is the default
     description:               # a note shown under the title, not in the prompt
+    default:                   # optional; one of the values, picked when the form opens
     candidates:
       values: []               # at least one string
 
@@ -34,6 +35,7 @@ inputs:
     type: textarea
     allow_empty: true
     placeholder:               # hint shown while empty, never a value
+    default:                   # optional; the text the field starts with
 
 output:
   # Mustache: {{ inputs.<name> }} is a value; {{#inputs.<name>}}…{{/inputs.<name>}}
